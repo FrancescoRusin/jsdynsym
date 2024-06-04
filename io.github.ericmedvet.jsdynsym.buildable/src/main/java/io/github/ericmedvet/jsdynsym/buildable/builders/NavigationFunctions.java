@@ -140,7 +140,6 @@ public class NavigationFunctions {
   public static <X> FormattedNamedFunction<X, Double> finalTimePlusD(
       @Param(value = "of", dNPM = "f.identity()")
           Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
-      @Param(value = "epsilon", dD = .01) double epsilon,
       @Param(value = "format", dS = "%5.3f") String format) {
     Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>, Double> f = o -> {
       SortedMap<Double, SingleAgentTask.Step<double[], double[], State>> snapshots = o.snapshots();
@@ -150,7 +149,7 @@ public class NavigationFunctions {
           .state()
           .robotPosition()
           .distance(snapshots.get(stopTime).state().targetPosition());
-      return stopTime + (lastDistance < epsilon ? 0d : lastDistance);
+      return stopTime + lastDistance;
     };
     return FormattedNamedFunction.from(f, format, "final.td").compose(beforeF);
   }
