@@ -35,14 +35,35 @@
 
 package io.github.ericmedvet.jsdynsym.buildable.builders;
 
-import io.github.ericmedvet.jsdynsym.core.numerical.MultiDimensionPolynomial2D;
+import io.github.ericmedvet.jsdynsym.control.geometry.Point;
+import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
+import io.github.ericmedvet.jsdynsym.control.navigation.TrajectoryDrawer;
+import io.github.ericmedvet.jviz.core.drawer.ImageBuilder;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
-import java.util.Arrays;
 
 public class Main {
   public static void main(String[] args) throws IOException {
-    MultiDimensionPolynomial2D poly = new MultiDimensionPolynomial2D(2, 2, true);
-    poly.setParams(new double[] {0d, 0d, 0d, 1d, 0d, -1d, -1d, 0d, 0d, 1d, 0d, 0d});
-    System.out.println(Arrays.stream(poly.compute(.5, .3)).boxed().toList());
+    final BufferedReader reader = new BufferedReader(new FileReader("/home/francescorusin/Desktop/Work/MapElites/Poly/pointnav_ga_poly_bests.csv"));
+    TrajectoryDrawer drawer = new TrajectoryDrawer(Arena.Prepared.E_MAZE.arena(), TrajectoryDrawer.Configuration.DEFAULT);
+    Point[][] trajectories = new Point[10][400];
+    reader.readLine();
+    for (int i = 0; i < 10; ++i) {
+      for (int j = 0; j < 400; ++j) {
+        String[] splitLine = reader.readLine().split(";");
+        trajectories[i][j] = new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6]));
+      }
+    }
+    drawer.save(new ImageBuilder.ImageInfo(500, 500),
+            new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/GA/pointnav_ga_poly_opt_trajectory.png"),
+            trajectories);
+    for (int i = 0; i < trajectories.length; ++i) {
+      drawer.save(new ImageBuilder.ImageInfo(500, 500),
+              new File(String.format("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/GA/pointnav_ga_poly_opt_trajectory_%d.png", i)),
+              new Point[][]{trajectories[i]});
+    }
   }
 }
