@@ -6,28 +6,42 @@ import io.github.ericmedvet.jviz.core.util.GraphicsUtils;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 public class TrajectoryDrawer implements Drawer<Point[][]> {
     private final Configuration configuration;
     private final Arena arena;
+    public enum MovementMode {
+        ARROW, LINE
+    }
+
+    public enum ColorMode {
+        GRADIENT, FIXED
+    }
 
     public record Configuration(
-            Color trajectoryColor,
-       Color segmentColor,
-       float trajectoryThickness,
-       double finalCircleRadius,
-       float segmentThickness,
-       double trajectoryAlpha,
-       double marginRate
-    ) {
-        public static final Configuration DEFAULT = new Configuration(Color.BLUE, Color.DARK_GRAY,1, .01, 3, 1, .02);
-    }
+            MovementMode movementMode,
+            ColorMode colorMode,
+            Color segmentColor,
+            float trajectoryThickness,
+            double finalCircleRadius,
+            float segmentThickness,
+            double trajectoryAlpha,
+            double marginRate
+    ) {}
 
     public TrajectoryDrawer(Arena arena, Configuration configuration) {
         this.arena = arena;
         this.configuration = configuration;
+    }
+
+    public TrajectoryDrawer(Arena arena, MovementMode movementMode, ColorMode colorMode) {
+        this.arena = arena;
+        this.configuration = new Configuration(movementMode, colorMode, Color.DARK_GRAY, 1, .01, 3, 1, .02);
     }
 
 
@@ -40,10 +54,44 @@ public class TrajectoryDrawer implements Drawer<Point[][]> {
         g.setColor(configuration.segmentColor);
         arena.segments().forEach(s -> g.draw(new Line2D.Double(s.p1().x(), s.p1().y(), s.p2().x(), s.p2().y())));
         g.setStroke(new BasicStroke((float) (configuration.trajectoryThickness / g.getTransform().getScaleX())));
-        g.setColor(GraphicsUtils.alphaed(configuration.trajectoryColor, configuration.trajectoryAlpha));
-        IntStream.range(0, trajectories.length).forEach(i ->
-                IntStream.range(1, trajectories[i].length).forEach(j -> drawArrow(g, trajectories[i][j - 1], trajectories[i][j]))
-        );
+        switch (configuration.colorMode) {
+            case FIXED:
+                g.setColor(GraphicsUtils.alphaed(Color.BLUE, configuration.trajectoryAlpha));
+                switch (configuration.movementMode) {
+                    case ARROW:
+                        IntStream.range(0, trajectories.length).forEach(i ->
+                                IntStream.range(1, trajectories[i].length).forEach(j -> drawArrow(g, trajectories[i][j - 1], trajectories[i][j]))
+                        );
+                        break;
+                    case LINE:
+                        for (Point[] trajectory : trajectories) {
+                            Path2D path = new Path2D.Double();
+                            path.moveTo(trajectory[0].x(), trajectory[0].y());
+                            Arrays.stream(Arrays.copyOfRange(trajectory, 1, trajectory.length)).forEach(p -> path.lineTo(p.x(), p.y()));
+                            g.draw(path);
+                        }
+                }
+                break;
+            case GRADIENT:
+                int[] color2 = new int[]{255, 0, 0};
+                int[] color1 = new int[]{0, 255, 0};
+                int[] current = new int[3];
+                for (Point[] trajectory : trajectories) {
+                    for (int i = 0; i < trajectory.length - 1; ++i) {
+                        double tick = i / (double) (trajectory.length - 1);
+                        for (int j = 0; j < 3; ++j) {
+                            current[j] = (int) (color1[j] * tick + color2[j] * (1 - tick));
+                        }
+                        g.setColor(GraphicsUtils.alphaed(new Color(current[0], current[1], current[2]), configuration.trajectoryAlpha));
+                        switch (configuration.movementMode) {
+                            case ARROW -> drawArrow(g, trajectory[i], trajectory[i + 1]);
+                            case LINE -> g.draw(new Line2D.Double(
+                                    trajectory[i].x(), trajectory[i].y(), trajectory[i + 1].x(), trajectory[i + 1].y()
+                            ));
+                        }
+                    }
+                }
+        }
         g.setTransform(previousTransform);
     }
 

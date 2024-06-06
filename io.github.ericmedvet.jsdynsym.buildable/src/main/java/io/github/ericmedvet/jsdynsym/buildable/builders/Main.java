@@ -47,8 +47,10 @@ import java.io.IOException;
 
 public class Main {
   public static void main(String[] args) throws IOException {
-    final BufferedReader reader = new BufferedReader(new FileReader("/home/francescorusin/Desktop/Work/MapElites/Poly/pointnav_ga_poly_bests.csv"));
-    TrajectoryDrawer drawer = new TrajectoryDrawer(Arena.Prepared.E_MAZE.arena(), TrajectoryDrawer.Configuration.DEFAULT);
+    final String alg = "me";
+    final BufferedReader reader = new BufferedReader(new FileReader(
+            String.format("/home/francescorusin/Desktop/Work/MapElites/Poly/pointnav_%s_poly_bests.csv", alg)));
+    TrajectoryDrawer drawer = new TrajectoryDrawer(Arena.Prepared.E_MAZE.arena(), TrajectoryDrawer.MovementMode.LINE, TrajectoryDrawer.ColorMode.GRADIENT);
     Point[][] trajectories = new Point[10][400];
     reader.readLine();
     for (int i = 0; i < 10; ++i) {
@@ -58,11 +60,12 @@ public class Main {
       }
     }
     drawer.save(new ImageBuilder.ImageInfo(500, 500),
-            new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/GA/pointnav_ga_poly_opt_trajectory.png"),
+            new File(
+                    String.format("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/%s/pointnav_%s_poly_opt_trajectory_grad.png", alg.toUpperCase(), alg)),
             trajectories);
     for (int i = 0; i < trajectories.length; ++i) {
       drawer.save(new ImageBuilder.ImageInfo(500, 500),
-              new File(String.format("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/GA/pointnav_ga_poly_opt_trajectory_%d.png", i)),
+              new File(String.format("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/%s/pointnav_%s_poly_opt_trajectory_grad_%d.png", alg.toUpperCase(), alg, i)),
               new Point[][]{trajectories[i]});
     }
   }
