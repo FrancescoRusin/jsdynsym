@@ -35,8 +35,7 @@ public class TrajectoryDrawer implements Drawer<Point[][]> {
     }
 
     public TrajectoryDrawer(Arena arena, Mode mode) {
-        this.arena = arena;
-        this.configuration = new Configuration(mode, Color.DARK_GRAY, 1, .01, 3, 1, .02);
+        this(arena, new Configuration(mode, Color.DARK_GRAY, 1, .01, 3, 1, .02));
     }
 
 
