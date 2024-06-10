@@ -50,7 +50,7 @@ public class Main {
     final String alg = "me";
     final BufferedReader reader = new BufferedReader(new FileReader(
             String.format("/home/francescorusin/Desktop/Work/MapElites/Poly/pointnav_%s_poly_bests.csv", alg)));
-    TrajectoryDrawer drawer = new TrajectoryDrawer(Arena.Prepared.E_MAZE.arena(), TrajectoryDrawer.MovementMode.LINE, TrajectoryDrawer.ColorMode.GRADIENT);
+    TrajectoryDrawer drawer = new TrajectoryDrawer(Arena.Prepared.E_MAZE.arena(), TrajectoryDrawer.Mode.GRADIENT);
     Point[][] trajectories = new Point[10][400];
     reader.readLine();
     for (int i = 0; i < 10; ++i) {
