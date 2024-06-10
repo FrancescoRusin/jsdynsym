@@ -39,6 +39,7 @@ import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.BaseTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MEIndividual;
+import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MapElitesTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.RankBasedTrajectoryDrawer;
 import io.github.ericmedvet.jviz.core.drawer.ImageBuilder;
 
@@ -49,13 +50,13 @@ import java.io.IOException;
 
 public class Main {
   public static void main(String[] args) throws IOException {
-    fullMEDraw();
+    STNDraw();
   }
 
   public static void baseDraw() throws IOException {
     final String alg = "me";
     final BufferedReader reader = new BufferedReader(new FileReader(
-            String.format("/home/francescorusin/Desktop/Work/MapElites/Poly/pointnav_%s_poly_bests.csv", alg)));
+            "/home/francescorusin/Desktop/Work/MapElites/Poly/pointnav_%s_poly_bests.csv".formatted(alg)));
     BaseTrajectoryDrawer drawer = new BaseTrajectoryDrawer(Arena.Prepared.E_MAZE.arena(), BaseTrajectoryDrawer.Mode.GRADIENT);
     Point[][] trajectories = new Point[10][400];
     reader.readLine();
@@ -67,16 +68,16 @@ public class Main {
     }
     drawer.save(new ImageBuilder.ImageInfo(500, 500),
             new File(
-                    String.format("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/%s/pointnav_%s_poly_opt_trajectory_grad.png", alg.toUpperCase(), alg)),
+                    "/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/%s/pointnav_%s_poly_opt_trajectory_grad.png".formatted(alg.toUpperCase(), alg)),
             trajectories);
     for (int i = 0; i < trajectories.length; ++i) {
       drawer.save(new ImageBuilder.ImageInfo(500, 500),
-              new File(String.format("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/%s/pointnav_%s_poly_opt_trajectory_grad_%d.png", alg.toUpperCase(), alg, i)),
+              new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/%s/pointnav_%s_poly_opt_trajectory_grad_%d.png".formatted(alg.toUpperCase(), alg, i)),
               new Point[][]{trajectories[i]});
     }
   }
 
-  public static void fullMEDraw() throws IOException {
+  public static void MERankDraw() throws IOException {
     final BufferedReader reader = new BufferedReader(new FileReader(
             "/home/francescorusin/Desktop/Work/MapElites/Poly/pointnav_me_poly_bests.csv"));
     RankBasedTrajectoryDrawer drawer = new RankBasedTrajectoryDrawer(Arena.Prepared.E_MAZE.arena(), 200);
@@ -87,7 +88,9 @@ public class Main {
         //seed;fitness;id;parent_id;rank;final_x;final_y
         String[] splitLine = reader.readLine().split(";");
         individuals[i][j] = new MEIndividual(new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6])),
-                Double.parseDouble(splitLine[1]), Integer.parseInt(splitLine[4]));
+                Double.parseDouble(splitLine[1]), Integer.parseInt(splitLine[4]),
+                (int) Math.floor(Double.parseDouble(splitLine[5]) * 20),
+                (int) Math.floor(Double.parseDouble(splitLine[6]) * 20));
       }
     }
     drawer.save(new ImageBuilder.ImageInfo(500, 500),
@@ -95,8 +98,38 @@ public class Main {
             individuals);
     for (int i = 0; i < individuals.length; ++i) {
       drawer.save(new ImageBuilder.ImageInfo(500, 500),
-              new File(String.format("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/ME/pointnav_me_poly_opt_trajectory_rank_%d.png", i)),
+              new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/ME/pointnav_me_poly_opt_trajectory_rank_%d.png".formatted(i)),
               new MEIndividual[][]{individuals[i]});
     }
+  }
+
+  public static void STNDraw() throws IOException {
+    final BufferedReader reader = new BufferedReader(new FileReader(
+            "/home/francescorusin/Desktop/Work/MapElites/Poly/pointnav_me_poly_bests.csv"));
+    MapElitesTrajectoryDrawer drawer = new MapElitesTrajectoryDrawer(Arena.Prepared.E_MAZE.arena(), new Point(.05, .05));
+    MEIndividual[][] individuals = new MEIndividual[10][400];
+    reader.readLine();
+    for (int i = 0; i < 10; ++i) {
+      for (int j = 0; j < 400; ++j) {
+        //seed;fitness;id;parent_id;rank;final_x;final_y
+        String[] splitLine = reader.readLine().split(";");
+        individuals[i][j] = new MEIndividual(new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6])),
+                Double.parseDouble(splitLine[1]), Integer.parseInt(splitLine[4]),
+                (int) Math.floor(Double.parseDouble(splitLine[5]) * 20),
+                (int) Math.floor(Double.parseDouble(splitLine[6]) * 20));
+      }
+    }
+      //for (MEIndividual[] individual : individuals) {
+          drawer.show(new ImageBuilder.ImageInfo(500, 500),
+                  new MEIndividual[][]{individuals[0]});
+      //}
+    /*drawer.save(new ImageBuilder.ImageInfo(500, 500),
+            new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/ME/pointnav_me_poly_opt_trajectory_stn.png"),
+            individuals);
+    for (int i = 0; i < individuals.length; ++i) {
+      drawer.save(new ImageBuilder.ImageInfo(500, 500),
+              new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/ME/pointnav_me_poly_opt_trajectory_stn_%d.png".formatted(i)),
+              new MEIndividual[][]{individuals[i]});
+    }*/
   }
 }

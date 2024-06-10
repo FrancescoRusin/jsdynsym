@@ -8,7 +8,7 @@ public interface Configuration {
     float trajectoryThickness();
     float DEFAULT_TRAJECTORY_THICKNESS = 1;
     double circleRadius();
-    double DEFAULT_CIRCLE_RADIUS = .01;
+    double DEFAULT_CIRCLE_RADIUS = .02;
     float segmentThickness();
     float DEFAULT_SEGMENT_THICKNESS = 3;
     double marginRate();
