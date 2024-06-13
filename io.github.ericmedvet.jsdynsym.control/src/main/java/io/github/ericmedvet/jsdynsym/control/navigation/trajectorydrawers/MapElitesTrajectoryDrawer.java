@@ -71,21 +71,7 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
             for (int j = 0; j < visitCounter[i].length; ++j) {
                 if (visitCounter[i][j] != 0) {
                     double visitPercentage = 2 * (visitCounter[i][j] - 1) * invertedMaximumVisits;
-                    Color color;
-                    if (visitPercentage > 1) {
-                        visitPercentage -= 1;
-                        color = new Color(
-                                (int) (firstColor[0] * visitPercentage + secondColor[0] * (1 - visitPercentage)),
-                                (int) (firstColor[1] * visitPercentage + secondColor[1] * (1 - visitPercentage)),
-                                (int) (firstColor[2] * visitPercentage + secondColor[2] * (1 - visitPercentage))
-                        );
-                    } else {
-                        color = new Color(
-                                (int) (secondColor[0] * visitPercentage + thirdColor[0] * (1 - visitPercentage)),
-                                (int) (secondColor[1] * visitPercentage + thirdColor[1] * (1 - visitPercentage)),
-                                (int) (secondColor[2] * visitPercentage + thirdColor[2] * (1 - visitPercentage))
-                        );
-                    }
+                    Color color = getColor(Color.RED, Color.YELLOW, Color.GREEN, visitPercentage);
                     Ellipse2D circle = new Ellipse2D.Double(
                             configuration.descriptorTick.x() * (i + .5) - configuration.circleRadius,
                             configuration.descriptorTick.y() * (j + .5) - configuration.circleRadius,

@@ -71,16 +71,10 @@ public class BaseTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer imp
                 }
                 break;
             case GRADIENT:
-                int[] color2 = new int[]{255, 0, 0};
-                int[] color1 = new int[]{0, 255, 0};
-                int[] current = new int[3];
                 for (Point[] trajectory : trajectories) {
                     for (int i = 0; i < trajectory.length - 1; ++i) {
                         double tick = i / (double) (trajectory.length - 1);
-                        for (int j = 0; j < 3; ++j) {
-                            current[j] = (int) (color1[j] * tick + color2[j] * (1 - tick));
-                        }
-                        g.setColor(new Color(current[0], current[1], current[2]));
+                        g.setColor(getColor(Color.RED, Color.YELLOW, Color.GREEN, tick));
                         g.draw(new Line2D.Double(
                                 trajectory[i].x(), trajectory[i].y(), trajectory[i + 1].x(), trajectory[i + 1].y()
                         ));

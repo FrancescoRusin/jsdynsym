@@ -61,21 +61,7 @@ public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
                     ++i;
                 } while (i < run.length && basePoint.equals(run[i].first().point()));
                 double relativePosition = 2 * run[i - 1].first().rank() / (double) run[i - 1].second();
-                Color color;
-                if (relativePosition > 1) {
-                    relativePosition -= 1;
-                    color = new Color(
-                            (int) (firstColor[0] * relativePosition + secondColor[0] * (1 - relativePosition)),
-                            (int) (firstColor[1] * relativePosition + secondColor[1] * (1 - relativePosition)),
-                            (int) (firstColor[2] * relativePosition + secondColor[2] * (1 - relativePosition))
-                    );
-                } else {
-                    color = new Color(
-                            (int) (secondColor[0] * relativePosition + thirdColor[0] * (1 - relativePosition)),
-                            (int) (secondColor[1] * relativePosition + thirdColor[1] * (1 - relativePosition)),
-                            (int) (secondColor[2] * relativePosition + thirdColor[2] * (1 - relativePosition))
-                    );
-                }
+                Color color = getColor(Color.GREEN, Color.YELLOW, Color.RED, relativePosition);
                 Ellipse2D circle = new Ellipse2D.Double(
                         basePoint.x() - configuration.circleRadius,
                         basePoint.y() - configuration.circleRadius,

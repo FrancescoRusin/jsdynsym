@@ -31,6 +31,24 @@ public abstract class AbstractArenaBasedTrajectoryDrawer {
         return previousTransform;
     }
 
+    protected Color getColor(Color colorZero, Color colorMid, Color colorOne, double t) {
+        double doubleT = 2 * t;
+        if (doubleT > 1) {
+            doubleT -= 1;
+            return new Color(
+                    (float) (colorOne.getRed() * doubleT + colorMid.getRed() * (1 - doubleT)),
+                    (float) (colorOne.getGreen() * doubleT + colorMid.getGreen() * (1 - doubleT)),
+                    (float) (colorOne.getBlue() * doubleT + colorMid.getBlue() * (1 - doubleT))
+            );
+        } else {
+            return new Color(
+                    (float) (colorMid.getRed() * doubleT + colorZero.getRed() * (1 - doubleT)),
+                    (float) (colorMid.getGreen() * doubleT + colorZero.getGreen() * (1 - doubleT)),
+                    (float) (colorMid.getBlue() * doubleT + colorZero.getBlue() * (1 - doubleT))
+            );
+        }
+    }
+
     protected void drawArrow(Graphics2D g, Point startingPoint, Point endingPoint) {
         if (startingPoint.equals(endingPoint)) {
             return;
