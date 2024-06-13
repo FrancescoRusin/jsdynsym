@@ -2,7 +2,6 @@ package io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers;
 
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
-import io.github.ericmedvet.jviz.core.drawer.Drawer;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;

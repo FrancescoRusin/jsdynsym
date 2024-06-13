@@ -3,7 +3,6 @@ package io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
-import io.github.ericmedvet.jviz.core.util.GraphicsUtils;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -22,6 +21,7 @@ public class BaseTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer imp
     public record BTDConfiguration(
             Mode mode,
             Color segmentColor,
+            Color arrowColor,
             float trajectoryThickness,
             double circleRadius,
             float segmentThickness,
@@ -30,6 +30,7 @@ public class BaseTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer imp
         public BTDConfiguration(Mode mode) {
             this(mode,
                     Configuration.DEFAULT_SEGMENT_COLOR,
+                    Configuration.DEFAULT_ARROW_COLOR,
                     Configuration.DEFAULT_TRAJECTORY_THICKNESS,
                     Configuration.DEFAULT_CIRCLE_RADIUS,
                     Configuration.DEFAULT_SEGMENT_THICKNESS,
@@ -54,14 +55,14 @@ public class BaseTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer imp
         g.setStroke(new BasicStroke((float) (configuration.trajectoryThickness / g.getTransform().getScaleX())));
         switch (configuration.mode) {
             case FIXED_ARROW:
-                g.setColor(Color.BLUE);
+                g.setColor(configuration.arrowColor);
                 IntStream.range(0, trajectories.length).forEach(i ->
                         IntStream.range(1, trajectories[i].length).forEach(j -> drawArrow(g, trajectories[i][j - 1], trajectories[i][j]))
                 );
 
                 break;
             case FIXED_LINE:
-                g.setColor(Color.BLUE);
+                g.setColor(configuration.arrowColor);
                 for (Point[] trajectory : trajectories) {
                     Path2D path = new Path2D.Double();
                     path.moveTo(trajectory[0].x(), trajectory[0].y());

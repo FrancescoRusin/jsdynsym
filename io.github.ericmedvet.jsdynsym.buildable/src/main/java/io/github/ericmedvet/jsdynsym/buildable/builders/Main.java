@@ -35,6 +35,7 @@
 
 package io.github.ericmedvet.jsdynsym.buildable.builders;
 
+import io.github.ericmedvet.jnb.datastructure.Pair;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.BaseTrajectoryDrawer;
@@ -78,19 +79,24 @@ public class Main {
   }
 
   public static void MERankDraw() throws IOException {
-    final BufferedReader reader = new BufferedReader(new FileReader(
+    final BufferedReader individualReader = new BufferedReader(new FileReader(
             "/home/francescorusin/Desktop/Work/MapElites/Poly/pointnav_me_poly_bests.csv"));
-    RankBasedTrajectoryDrawer drawer = new RankBasedTrajectoryDrawer(Arena.Prepared.E_MAZE.arena(), 200);
-    MEIndividual[][] individuals = new MEIndividual[10][400];
-    reader.readLine();
+    final BufferedReader sizeReader = new BufferedReader(new FileReader(
+            "/home/francescorusin/Desktop/Work/MapElites/Poly/pointnav_me_poly_sizes.csv"));
+    RankBasedTrajectoryDrawer drawer = new RankBasedTrajectoryDrawer(Arena.Prepared.E_MAZE.arena());
+    Pair<MEIndividual, Integer>[][] individuals = new Pair[10][400];
+    individualReader.readLine();
+    sizeReader.readLine();
     for (int i = 0; i < 10; ++i) {
       for (int j = 0; j < 400; ++j) {
         //seed;fitness;id;parent_id;rank;final_x;final_y
-        String[] splitLine = reader.readLine().split(";");
-        individuals[i][j] = new MEIndividual(new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6])),
+        String[] splitLine = individualReader.readLine().split(";");
+        individuals[i][j] = new Pair<>(new MEIndividual(new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6])),
                 Double.parseDouble(splitLine[1]), Integer.parseInt(splitLine[4]),
                 (int) Math.floor(Double.parseDouble(splitLine[5]) * 20),
-                (int) Math.floor(Double.parseDouble(splitLine[6]) * 20));
+                (int) Math.floor(Double.parseDouble(splitLine[6]) * 20)), 
+                Integer.parseInt(sizeReader.readLine().split(";")[2])
+        );
       }
     }
     drawer.save(new ImageBuilder.ImageInfo(500, 500),
@@ -99,7 +105,7 @@ public class Main {
     for (int i = 0; i < individuals.length; ++i) {
       drawer.save(new ImageBuilder.ImageInfo(500, 500),
               new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/ME/pointnav_me_poly_opt_trajectory_rank_%d.png".formatted(i)),
-              new MEIndividual[][]{individuals[i]});
+              new Pair[][]{individuals[i]});
     }
   }
 
@@ -119,17 +125,10 @@ public class Main {
                 (int) Math.floor(Double.parseDouble(splitLine[6]) * 20));
       }
     }
-      //for (MEIndividual[] individual : individuals) {
-          drawer.show(new ImageBuilder.ImageInfo(500, 500),
-                  new MEIndividual[][]{individuals[0]});
-      //}
-    /*drawer.save(new ImageBuilder.ImageInfo(500, 500),
-            new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/ME/pointnav_me_poly_opt_trajectory_stn.png"),
-            individuals);
     for (int i = 0; i < individuals.length; ++i) {
       drawer.save(new ImageBuilder.ImageInfo(500, 500),
               new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Drawings/ME/pointnav_me_poly_opt_trajectory_stn_%d.png".formatted(i)),
-              new MEIndividual[][]{individuals[i]});
-    }*/
+              individuals[i]);
+    }
   }
 }

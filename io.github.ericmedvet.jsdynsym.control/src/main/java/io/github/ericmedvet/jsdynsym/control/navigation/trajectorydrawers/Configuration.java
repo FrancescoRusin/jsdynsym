@@ -5,6 +5,8 @@ import java.awt.*;
 public interface Configuration {
     Color segmentColor();
     Color DEFAULT_SEGMENT_COLOR = Color.DARK_GRAY;
+    Color arrowColor();
+    Color DEFAULT_ARROW_COLOR = Color.BLUE;
     float trajectoryThickness();
     float DEFAULT_TRAJECTORY_THICKNESS = 1;
     double circleRadius();

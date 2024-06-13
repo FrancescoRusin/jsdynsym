@@ -27,4 +27,5 @@ module io.github.ericmedvet.jsdynsym.control {
   requires io.github.ericmedvet.jnb.datastructure;
   requires io.github.ericmedvet.jviz.core;
   requires java.desktop;
+    requires jcodec;
 }
