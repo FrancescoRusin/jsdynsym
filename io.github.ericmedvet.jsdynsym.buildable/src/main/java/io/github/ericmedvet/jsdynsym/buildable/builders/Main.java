@@ -112,7 +112,7 @@ public class Main {
   public static void STNDraw() throws IOException {
     final BufferedReader reader = new BufferedReader(new FileReader(
             "/home/francescorusin/Desktop/Work/MapElites/Poly/pointnav_me_poly_bests.csv"));
-    MapElitesTrajectoryDrawer drawer = new MapElitesTrajectoryDrawer(Arena.Prepared.E_MAZE.arena(), new Point(.05, .05));
+    MapElitesTrajectoryDrawer drawer = new MapElitesTrajectoryDrawer(Arena.Prepared.FLAT_MAZE.arena(), new Point(.05, .05));
     MEIndividual[][] individuals = new MEIndividual[10][400];
     reader.readLine();
     for (int i = 0; i < 10; ++i) {

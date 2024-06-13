@@ -50,9 +50,6 @@ public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
     public void draw(Graphics2D g, Pair<MEIndividual, Integer>[][] individualsAndSizes) {
         AffineTransform previousTransform = setTransform(g, arena, configuration);
         drawArena(g, configuration);
-        final int[] firstColor = new int[]{255, 0, 0};
-        final int[] secondColor = new int[]{255, 255, 0};
-        final int[] thirdColor = new int[]{0, 255, 0};
         g.setStroke(new BasicStroke((float) (configuration.trajectoryThickness / g.getTransform().getScaleX())));
         for (Pair<MEIndividual, Integer>[] run : individualsAndSizes) {
             Point basePoint = run[0].first().point();
@@ -60,7 +57,7 @@ public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
                 do {
                     ++i;
                 } while (i < run.length && basePoint.equals(run[i].first().point()));
-                double relativePosition = 2 * run[i - 1].first().rank() / (double) run[i - 1].second();
+                double relativePosition = run[i - 1].first().rank() / (double) run[i - 1].second();
                 Color color = getColor(Color.GREEN, Color.YELLOW, Color.RED, relativePosition);
                 Ellipse2D circle = new Ellipse2D.Double(
                         basePoint.x() - configuration.circleRadius,

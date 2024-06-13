@@ -61,17 +61,14 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
         for (int i = 1; i < individuals.length; ++i) {
             ++visitCounter[individuals[i].bin1()][individuals[i].bin2()];
         }
-        final int[] firstColor = new int[]{255, 0, 0};
-        final int[] secondColor = new int[]{255, 255, 0};
-        final int[] thirdColor = new int[]{0, 255, 0};
         g.setStroke(new BasicStroke((float) (configuration.circleThickness / g.getTransform().getScaleX())));
         final double invertedMaximumVisits = 1d / Math.max(Arrays.stream(visitCounter).map(a -> Arrays.stream(a).max().orElse(1))
                 .max(Comparator.comparingInt(i -> i)).orElse(1) - 1, 1);
         for (int i = 0; i < visitCounter.length; ++i) {
             for (int j = 0; j < visitCounter[i].length; ++j) {
                 if (visitCounter[i][j] != 0) {
-                    double visitPercentage = 2 * (visitCounter[i][j] - 1) * invertedMaximumVisits;
-                    Color color = getColor(Color.RED, Color.YELLOW, Color.GREEN, visitPercentage);
+                    double visitPercentage = (visitCounter[i][j] - 1) * invertedMaximumVisits;
+                    Color color = getColor(Color.GREEN, Color.YELLOW, Color.RED, visitPercentage);
                     Ellipse2D circle = new Ellipse2D.Double(
                             configuration.descriptorTick.x() * (i + .5) - configuration.circleRadius,
                             configuration.descriptorTick.y() * (j + .5) - configuration.circleRadius,

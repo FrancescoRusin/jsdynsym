@@ -36,15 +36,15 @@ public abstract class AbstractArenaBasedTrajectoryDrawer {
         if (doubleT > 1) {
             doubleT -= 1;
             return new Color(
-                    (float) (colorOne.getRed() * doubleT + colorMid.getRed() * (1 - doubleT)),
-                    (float) (colorOne.getGreen() * doubleT + colorMid.getGreen() * (1 - doubleT)),
-                    (float) (colorOne.getBlue() * doubleT + colorMid.getBlue() * (1 - doubleT))
+                    (int) (colorOne.getRed() * doubleT + colorMid.getRed() * (1 - doubleT)),
+                    (int) (colorOne.getGreen() * doubleT + colorMid.getGreen() * (1 - doubleT)),
+                    (int) (colorOne.getBlue() * doubleT + colorMid.getBlue() * (1 - doubleT))
             );
         } else {
             return new Color(
-                    (float) (colorMid.getRed() * doubleT + colorZero.getRed() * (1 - doubleT)),
-                    (float) (colorMid.getGreen() * doubleT + colorZero.getGreen() * (1 - doubleT)),
-                    (float) (colorMid.getBlue() * doubleT + colorZero.getBlue() * (1 - doubleT))
+                    (int) (colorMid.getRed() * doubleT + colorZero.getRed() * (1 - doubleT)),
+                    (int) (colorMid.getGreen() * doubleT + colorZero.getGreen() * (1 - doubleT)),
+                    (int) (colorMid.getBlue() * doubleT + colorZero.getBlue() * (1 - doubleT))
             );
         }
     }
