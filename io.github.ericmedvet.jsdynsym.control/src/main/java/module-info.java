@@ -21,11 +21,11 @@ module io.github.ericmedvet.jsdynsym.control {
   exports io.github.ericmedvet.jsdynsym.control;
   exports io.github.ericmedvet.jsdynsym.control.navigation;
   exports io.github.ericmedvet.jsdynsym.control.geometry;
-    exports io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers;
+  exports io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers;
 
-    requires io.github.ericmedvet.jsdynsym.core;
+  requires io.github.ericmedvet.jsdynsym.core;
   requires io.github.ericmedvet.jnb.datastructure;
   requires io.github.ericmedvet.jviz.core;
   requires java.desktop;
-    requires jcodec;
+  requires jcodec;
 }
