@@ -30,7 +30,7 @@ import java.awt.geom.Ellipse2D;
 import java.util.*;
 import java.util.List;
 
-public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer implements Drawer<MEIndividual[][]> {
+public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer implements Drawer<Pair<MEIndividual, Integer>[][]> {
   private final METConfiguration configuration;
 
   public enum Mode {
@@ -76,14 +76,14 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
   }
 
   @Override
-  public void draw(Graphics2D g, MEIndividual[][] individuals) {
+  public void draw(Graphics2D g, Pair<MEIndividual, Integer>[][] individualsAndSizes) {
     //TODO RIFARE PER PIÙ RUN INSIEME INVECE CHE SOLO UNA
     AffineTransform previousTransform = setTransform(g, arena, configuration);
     drawArena(g, configuration);
     int[][] visitCounter = new int[(int) Math.ceil(arena.xExtent() / configuration.descriptorTick.x() - 0.0001)]
             [(int) Math.ceil(arena.xExtent() / configuration.descriptorTick.x() - 0.0001)];
     List<Integer>[][] rankCounter = new List[visitCounter.length][visitCounter[0].length];
-    if (Objects.isNull(individuals) || individuals.length == 0) {
+    if (Objects.isNull(individualsAndSizes) || individualsAndSizes.length == 0) {
       return;
     }
     Arrays.stream(visitCounter).forEach(a -> Arrays.fill(a, 0));
@@ -92,10 +92,10 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
         rankCounter[i][j] = new ArrayList<>();
       }
     }
-    for (MEIndividual[] run : individuals) {
-      for (MEIndividual individual : run) {
-        ++visitCounter[individual.bin1()][individual.bin2()];
-        rankCounter[individual.bin1()][individual.bin2()].add(individual.rank());
+    for (Pair<MEIndividual, Integer>[] run : individualsAndSizes) {
+      for (Pair<MEIndividual, Integer> individual : run) {
+        ++visitCounter[individual.first().bin1()][individual.first().bin2()];
+        rankCounter[individual.first().bin1()][individual.first().bin2()].add(individual.first().rank() / individual.second());
       }
     }
     g.setStroke(new BasicStroke(
@@ -151,14 +151,14 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
           }
         }
     }
-    int prevBinX = individuals[0].bin1();
-    int prevBinY = individuals[0].bin2();
+    int prevBinX = individualsAndSizes[0].bin1();
+    int prevBinY = individualsAndSizes[0].bin2();
     Map<Pair<Integer, Integer>, Integer> locations = new HashMap<>();
     g.setColor(configuration.arrowColor);
-    for (int i = 1; i < individuals.length; ++i) {
-      if (individuals[i].bin1() == prevBinX
-              && individuals[i].bin2() == prevBinY
-              && individuals[i].fitness() != individuals[i - 1].fitness()) {
+    for (int i = 1; i < individualsAndSizes.length; ++i) {
+      if (individualsAndSizes[i].bin1() == prevBinX
+              && individualsAndSizes[i].bin2() == prevBinY
+              && individualsAndSizes[i].fitness() != individualsAndSizes[i - 1].fitness()) {
         Pair<Integer, Integer> p = new Pair<>(prevBinX, prevBinY);
         if (locations.containsKey(p)) {
           locations.put(p, locations.get(p) + 1);
@@ -170,16 +170,16 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
                 (prevBinX + .5) * configuration.descriptorTick.x(),
                 (prevBinY + .5) * configuration.descriptorTick.y());
         Point p2 = new Point(
-                (individuals[i].bin1() + .5) * configuration.descriptorTick.x(),
-                (individuals[i].bin2() + .5) * configuration.descriptorTick.y());
+                (individualsAndSizes[i].bin1() + .5) * configuration.descriptorTick.x(),
+                (individualsAndSizes[i].bin2() + .5) * configuration.descriptorTick.y());
         Point outOfCircleDirection = p2.diff(p1);
         outOfCircleDirection =
                 outOfCircleDirection.scale(configuration.circleRadius / outOfCircleDirection.magnitude());
         p1 = p1.sum(outOfCircleDirection);
         p2 = p2.diff(outOfCircleDirection);
         drawArrow(g, p1, p2);
-        prevBinX = individuals[i].bin1();
-        prevBinY = individuals[i].bin2();
+        prevBinX = individualsAndSizes[i].bin1();
+        prevBinY = individualsAndSizes[i].bin2();
       }
     }
     g.setColor(configuration.tickColor);
