@@ -126,7 +126,7 @@ public class Main {
             new FileReader("/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/pointnav_me_poly_bests.csv"));
     int nOfDescriptors = 10;
     MapElitesTrajectoryDrawer drawer =
-            new MapElitesTrajectoryDrawer(Arena.Prepared.DECIMAL_MAZE.arena(), new Point(1d / nOfDescriptors, 1d / nOfDescriptors));
+            new MapElitesTrajectoryDrawer(Arena.Prepared.DECIMAL_MAZE.arena(), MapElitesTrajectoryDrawer.Mode.BASE, new Point(1d / nOfDescriptors, 1d / nOfDescriptors));
     MEIndividual[][] individuals = new MEIndividual[10][400];
     reader.readLine();
     for (int i = 0; i < 10; ++i) {
