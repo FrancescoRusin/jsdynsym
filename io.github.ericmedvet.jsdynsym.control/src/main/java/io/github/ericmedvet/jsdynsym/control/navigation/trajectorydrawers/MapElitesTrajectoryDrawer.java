@@ -30,11 +30,14 @@ import java.awt.geom.Ellipse2D;
 import java.util.*;
 import java.util.List;
 
-public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer implements Drawer<Pair<MEIndividual, Integer>[][]> {
+@SuppressWarnings("unchecked")
+public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer
+    implements Drawer<Pair<MEIndividual, Integer>[][]> {
   private final METConfiguration configuration;
 
   public enum Mode {
-    BASE, BOINK
+    BASE,
+    RANK
   }
 
   public record METConfiguration(
@@ -59,7 +62,7 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
               Color.ORANGE,
               Configuration.DEFAULT_TRAJECTORY_THICKNESS,
               1,
-              Math.min(descriptorTick.x(), descriptorTick.y()) * .2,
+              Math.min(descriptorTick.x(), descriptorTick.y()) * (mode == Mode.BASE ? .2 : .4),
               Configuration.DEFAULT_SEGMENT_THICKNESS,
               1,
               Configuration.DEFAULT_MARGIN_RATE);
@@ -77,16 +80,17 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
 
   @Override
   public void draw(Graphics2D g, Pair<MEIndividual, Integer>[][] individualsAndSizes) {
-    //TODO RIFARE PER PIÙ RUN INSIEME INVECE CHE SOLO UNA
+    if (Objects.isNull(individualsAndSizes) || individualsAndSizes.length == 0) {
+      return;
+    }
     AffineTransform previousTransform = setTransform(g, arena, configuration);
     drawArena(g, configuration);
     int[][] visitCounter = new int[(int) Math.ceil(arena.xExtent() / configuration.descriptorTick.x() - 0.0001)]
             [(int) Math.ceil(arena.xExtent() / configuration.descriptorTick.x() - 0.0001)];
-    List<Integer>[][] rankCounter = new List[visitCounter.length][visitCounter[0].length];
-    if (Objects.isNull(individualsAndSizes) || individualsAndSizes.length == 0) {
-      return;
-    }
+    double[][] circleRadiusPerPosition = new double[visitCounter.length][visitCounter[0].length];
+    List<Double>[][] rankCounter = new List[visitCounter.length][visitCounter[0].length];
     Arrays.stream(visitCounter).forEach(a -> Arrays.fill(a, 0));
+    Arrays.stream(circleRadiusPerPosition).forEach(a -> Arrays.fill(a, 0));
     for (int i = 0; i < rankCounter.length; ++i) {
       for (int j = 0; j < rankCounter[0].length; ++j) {
         rankCounter[i][j] = new ArrayList<>();
@@ -95,7 +99,8 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
     for (Pair<MEIndividual, Integer>[] run : individualsAndSizes) {
       for (Pair<MEIndividual, Integer> individual : run) {
         ++visitCounter[individual.first().bin1()][individual.first().bin2()];
-        rankCounter[individual.first().bin1()][individual.first().bin2()].add(individual.first().rank() / individual.second());
+        rankCounter[individual.first().bin1()][individual.first().bin2()].add(
+                (double) individual.first().rank() / individual.second());
       }
     }
     g.setStroke(new BasicStroke(
@@ -108,16 +113,13 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
                     .orElse(1)
                     - 1,
             1);
-    final double minFitness = Math.max(Arrays.stream(rankCounter).flatMap(Arrays::stream)
-            .flatMap(List::stream).min(Comparator.comparingInt(i -> i)).orElse(0), 20);
-    final double maxFitness = Arrays.stream(rankCounter).flatMap(Arrays::stream)
-            .flatMap(List::stream).max(Comparator.comparingInt(i -> i)).orElse(20);
+    // draw position circles
     switch (configuration.mode) {
       case BASE:
         for (int i = 0; i < visitCounter.length; ++i) {
           for (int j = 0; j < visitCounter[i].length; ++j) {
             if (visitCounter[i][j] != 0) {
-              double visitPercentage = (visitCounter[i][j] - 1) * invertedMaximumVisits;
+              double visitPercentage = visitCounter[i][j] * invertedMaximumVisits;
               Color color = getColor(Color.GREEN, Color.YELLOW, Color.RED, visitPercentage);
               Ellipse2D circle = new Ellipse2D.Double(
                       configuration.descriptorTick.x() * (i + .5) - configuration.circleRadius,
@@ -128,60 +130,71 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
               g.fill(circle);
               g.setColor(color);
               g.draw(circle);
+              circleRadiusPerPosition[i][j] = configuration.circleRadius;
             }
           }
         }
         break;
-      case BOINK:
+      case RANK:
         for (int i = 0; i < visitCounter.length; ++i) {
           for (int j = 0; j < visitCounter[i].length; ++j) {
             if (visitCounter[i][j] != 0) {
-              double rankPercentage = rankCounter[i][j].stream().mapToInt(d -> d).average().orElse(0);
+              double rankPercentage = rankCounter[i][j].stream().mapToDouble(d -> d).max().orElse(0);
+              double visitPercentage = visitCounter[i][j] * invertedMaximumVisits;
+              double circleRadius = configuration.circleRadius * (visitPercentage * .7 + .3);
               Color color = getColor(Color.GREEN, Color.YELLOW, Color.RED, rankPercentage);
               Ellipse2D circle = new Ellipse2D.Double(
-                      configuration.descriptorTick.x() * (i + .5) - configuration.circleRadius,
-                      configuration.descriptorTick.y() * (j + .5) - configuration.circleRadius,
-                      2 * configuration.circleRadius,
-                      2 * configuration.circleRadius);
+                      configuration.descriptorTick.x() * (i + .5) - circleRadius,
+                      configuration.descriptorTick.y() * (j + .5) - circleRadius,
+                      2 * circleRadius,
+                      2 * circleRadius);
               g.setColor(GraphicsUtils.alphaed(color, configuration.pointInternAlpha));
               g.fill(circle);
               g.setColor(color);
               g.draw(circle);
+              circleRadiusPerPosition[i][j] = circleRadius;
             }
           }
         }
     }
-    int prevBinX = individualsAndSizes[0].bin1();
-    int prevBinY = individualsAndSizes[0].bin2();
+
     Map<Pair<Integer, Integer>, Integer> locations = new HashMap<>();
     g.setColor(configuration.arrowColor);
-    for (int i = 1; i < individualsAndSizes.length; ++i) {
-      if (individualsAndSizes[i].bin1() == prevBinX
-              && individualsAndSizes[i].bin2() == prevBinY
-              && individualsAndSizes[i].fitness() != individualsAndSizes[i - 1].fitness()) {
-        Pair<Integer, Integer> p = new Pair<>(prevBinX, prevBinY);
-        if (locations.containsKey(p)) {
-          locations.put(p, locations.get(p) + 1);
-        } else {
-          locations.put(p, 1);
+    // draw arrows
+    for (Pair<MEIndividual, Integer>[] run : individualsAndSizes) {
+      int prevBinX = run[0].first().bin1();
+      int prevBinY = run[0].first().bin2();
+      for (int i = 1; i < run.length; ++i) {
+        int currBinX = run[i].first().bin1();
+        int currBinY = run[i].first().bin2();
+        if (currBinX == prevBinX && currBinY == prevBinY && run[i].first().fitness() != run[i - 1].first().fitness()) {
+          // a surprise tool that will help us later
+          Pair<Integer, Integer> p = new Pair<>(prevBinX, prevBinY);
+          if (locations.containsKey(p)) {
+            locations.put(p, locations.get(p) + 1);
+          } else {
+            locations.put(p, 1);
+          }
+        } else if (currBinX != prevBinX || currBinY != prevBinY) {
+          Point p1 = new Point(
+                  (prevBinX + .5) * configuration.descriptorTick.x(),
+                  (prevBinY + .5) * configuration.descriptorTick.y());
+          Point p2 = new Point(
+                  (currBinX + .5) * configuration.descriptorTick.x(),
+                  (currBinY + .5) * configuration.descriptorTick.y());
+          Point outOfCircleDirection = p2.diff(p1);
+          outOfCircleDirection = outOfCircleDirection.scale(1 / outOfCircleDirection.magnitude());
+          Point outOfCircleDirection1 = outOfCircleDirection.scale(circleRadiusPerPosition[prevBinX][prevBinY]);
+          Point outOfCircleDirection2 = outOfCircleDirection.scale(circleRadiusPerPosition[currBinX][currBinY]);
+          p1 = p1.sum(outOfCircleDirection1);
+          p2 = p2.diff(outOfCircleDirection2);
+          drawArrow(g, p1, p2);
+          prevBinX = currBinX;
+          prevBinY = currBinY;
         }
-      } else {
-        Point p1 = new Point(
-                (prevBinX + .5) * configuration.descriptorTick.x(),
-                (prevBinY + .5) * configuration.descriptorTick.y());
-        Point p2 = new Point(
-                (individualsAndSizes[i].bin1() + .5) * configuration.descriptorTick.x(),
-                (individualsAndSizes[i].bin2() + .5) * configuration.descriptorTick.y());
-        Point outOfCircleDirection = p2.diff(p1);
-        outOfCircleDirection =
-                outOfCircleDirection.scale(configuration.circleRadius / outOfCircleDirection.magnitude());
-        p1 = p1.sum(outOfCircleDirection);
-        p2 = p2.diff(outOfCircleDirection);
-        drawArrow(g, p1, p2);
-        prevBinX = individualsAndSizes[i].bin1();
-        prevBinY = individualsAndSizes[i].bin2();
       }
     }
+    // draw ticks
     g.setColor(configuration.tickColor);
     for (Pair<Integer, Integer> p : locations.keySet()) {
       Point posPoint = new Point(
@@ -191,10 +204,9 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
       for (int j = 0; j < locations.get(p); ++j) {
         Point rotatedCircleSurface = new Point(
                 Math.cos(-Math.PI / 7 + angleTick * j), Math.sin(-Math.PI / 7 + angleTick * j))
-                .scale(configuration.circleRadius);
-        Point rotatedArrowStart = rotatedCircleSurface.scale(.5
-                * Math.max(configuration.descriptorTick.x(), configuration.descriptorTick.y())
-                / configuration.circleRadius);
+                .scale(circleRadiusPerPosition[p.first()][p.second()]);
+        Point rotatedArrowStart = rotatedCircleSurface.scale(
+                (rotatedCircleSurface.magnitude() + .2 * Math.max(configuration.descriptorTick.x(), configuration.descriptorTick.y())) / rotatedCircleSurface.magnitude());
         drawArrow(g, posPoint.sum(rotatedArrowStart), posPoint.sum(rotatedCircleSurface));
       }
     }
