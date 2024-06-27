@@ -30,7 +30,7 @@ public class MultiDimensionPolynomial2D
   private final boolean clip;
 
   public MultiDimensionPolynomial2D(double[][] weights, boolean clip) {
-    this.degree = (int) (Math.sqrt(1 + 4 * weights[0].length) - 1) / 2;
+    this.degree = (int) (Math.sqrt(1 + 8 * weights[0].length) - 3) / 2;
     for (double[] w : weights) {
       if (w.length != degree) {
         throw new IllegalArgumentException("Bruh");

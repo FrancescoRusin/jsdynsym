@@ -42,27 +42,63 @@ import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment;
+import io.github.ericmedvet.jsdynsym.control.navigation.VectorFieldDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.BaseTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MEIndividual;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MapElitesTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.RankBasedTrajectoryDrawer;
+import io.github.ericmedvet.jsdynsym.core.numerical.MultiDimensionPolynomial2D;
 import io.github.ericmedvet.jviz.core.drawer.ImageBuilder;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.Map;
-import java.util.Random;
-import java.util.TreeMap;
+
+import java.io.*;
+import java.util.*;
 
 @SuppressWarnings("unused, unchecked")
 public class Main {
-  public static void main(String[] args) throws IOException {
-    arenaDraw();
+  public static void main(String[] args) throws Exception {
+    vectorFieldDraw();
+  }
+
+  public static void vectorFieldDraw() throws IOException, ClassNotFoundException {
+    final VectorFieldDrawer drawer = new VectorFieldDrawer(Arena.Prepared.DECIMAL_MAZE.arena(), VectorFieldDrawer.Configuration.DEFAULT);
+    final BufferedReader reader = new BufferedReader(new FileReader(
+            "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/pointnav_me_poly_all.csv"
+    ));
+    final MultiDimensionPolynomial2D polynomial = new MultiDimensionPolynomial2D(2, 3, true);
+    reader.readLine();
+    String line = reader.readLine();
+    String bestGen = "";
+    double bestFitness = Double.MAX_VALUE;
+    int prevSeed = -10;
+    while (Objects.nonNull(line)) {
+      String[] splitLine = line.split(";");
+      if (Double.parseDouble(splitLine[5]) < bestFitness) {
+        bestGen = splitLine[splitLine.length - 1];
+        bestFitness = Double.parseDouble(splitLine[5]);
+      }
+      if (Integer.parseInt(splitLine[2]) != prevSeed) {
+        bestFitness = Double.MAX_VALUE;
+        polynomial.setParams(((List<Double>) new ObjectInputStream(new ByteArrayInputStream(Base64.getDecoder().decode(bestGen))).readObject())
+                .stream().mapToDouble(d -> d).toArray());
+        drawer.save(new ImageBuilder.ImageInfo(500, 500), new File(
+                        "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/pointnav_me_poly_vecfield_%d.png"
+                                .formatted(prevSeed + 10)
+                ),
+                polynomial);
+        ++prevSeed;
+      }
+      line = reader.readLine();
+    }
+    polynomial.setParams(((List<Double>) new ObjectInputStream(new ByteArrayInputStream(Base64.getDecoder().decode(bestGen))).readObject())
+            .stream().mapToDouble(d -> d).toArray());
+    drawer.save(new ImageBuilder.ImageInfo(500, 500), new File(
+                    "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/pointnav_me_poly_vecfield_9.png"
+            ),
+            polynomial);
   }
 
   public static void arenaDraw() throws IOException {
-    PointNavigationDrawer drawer = new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT);
+    final PointNavigationDrawer drawer = new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT);
     drawer.save(new ImageBuilder.ImageInfo(500, 500),
             new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/labyrinth.png"),
             () -> new TreeMap<>(Map.of(0d,
