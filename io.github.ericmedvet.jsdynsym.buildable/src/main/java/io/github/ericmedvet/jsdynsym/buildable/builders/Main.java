@@ -35,9 +35,13 @@
 
 package io.github.ericmedvet.jsdynsym.buildable.builders;
 
+import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jnb.datastructure.Pair;
+import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
+import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
+import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.BaseTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MEIndividual;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MapElitesTrajectoryDrawer;
@@ -47,11 +51,38 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Map;
+import java.util.Random;
+import java.util.TreeMap;
 
 @SuppressWarnings("unused, unchecked")
 public class Main {
   public static void main(String[] args) throws IOException {
-    STNDraw();
+    arenaDraw();
+  }
+
+  public static void arenaDraw() throws IOException {
+    PointNavigationDrawer drawer = new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT);
+    drawer.save(new ImageBuilder.ImageInfo(500, 500),
+            new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/labyrinth.png"),
+            () -> new TreeMap<>(Map.of(0d,
+                    new SingleAgentTask.Step<>(new double[]{0d, 0d}, new double[]{0d, 0d},
+                            new PointNavigationEnvironment.State(
+                                    new PointNavigationEnvironment.Configuration(
+                                            new DoubleRange(.5, .5),
+                                            new DoubleRange(.75, .75),
+                                            new DoubleRange(.5, .5),
+                                            new DoubleRange(.15, .15),
+                                            1,
+                                            1,
+                                            Arena.Prepared.DECIMAL_MAZE.arena(),
+                                            true,
+                                            new Random()
+                                    ),
+                                    new Point(.5, .15),
+                                    new Point(.5, .75),
+                                    0
+                            )))));
   }
 
   public static void baseDraw() throws IOException {
