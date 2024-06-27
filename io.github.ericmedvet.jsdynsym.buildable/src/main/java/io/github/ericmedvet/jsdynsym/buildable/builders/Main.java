@@ -47,6 +47,7 @@ import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.BaseTr
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MEIndividual;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MapElitesTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.RankBasedTrajectoryDrawer;
+import io.github.ericmedvet.jsdynsym.core.numerical.MultiDimensionPolynomial;
 import io.github.ericmedvet.jsdynsym.core.numerical.MultiDimensionPolynomial2D;
 import io.github.ericmedvet.jviz.core.drawer.ImageBuilder;
 
@@ -56,7 +57,16 @@ import java.util.*;
 @SuppressWarnings("unused, unchecked")
 public class Main {
   public static void main(String[] args) throws Exception {
-    vectorFieldDraw();
+    polyTest();
+  }
+
+  public static void polyTest() {
+    MultiDimensionPolynomial poly = new MultiDimensionPolynomial(3, 2, 2);
+    poly.setParams(new double[]{
+            1d, 1d, 0d, 1d, 0d, 0d, 1d, 0d, 0d, 0d,
+            0d, 0d, 1d, 0d, 0d, 1d, 0d, 0d, 0d, 1d
+    });
+    System.out.println(Arrays.stream(poly.compute(.5, -1d, 1d)).boxed().toList());
   }
 
   public static void vectorFieldDraw() throws IOException, ClassNotFoundException {
@@ -131,8 +141,8 @@ public class Main {
     reader.readLine();
     for (int i = 0; i < 10; ++i) {
       for (int j = 0; j < 400; ++j) {
-        String[] splitLine = reader.readLine().split(";");
-        trajectories[i][j] = new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6]));
+        String[] splitLine = reader.readLine().split(",");
+        trajectories[i][j] = new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7]));
       }
     }
     drawer.save(
@@ -162,15 +172,16 @@ public class Main {
     sizeReader.readLine();
     for (int i = 0; i < 10; ++i) {
       for (int j = 0; j < 400; ++j) {
-        // seed;fitness;id;parent_id;rank;final_x;final_y
-        String[] splitLine = individualReader.readLine().split(";");
+        // seed;fitness;id;parent_id;absolute_rank;relative_rank;final_x;final_y;bin_x;bin_y
+        String[] splitLine = individualReader.readLine().split(",");
         individuals[i][j] = new Pair<>(
                 new MEIndividual(
-                        new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6])),
+                        new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
                         Double.parseDouble(splitLine[1]),
                         Integer.parseInt(splitLine[4]),
-                        (int) Math.floor(Double.parseDouble(splitLine[5]) * 10),
-                        (int) Math.floor(Double.parseDouble(splitLine[6]) * 10)),
+                        Integer.parseInt(splitLine[8]),
+                        Integer.parseInt(splitLine[9])
+                ),
                 Integer.parseInt(sizeReader.readLine().split(";")[2]));
       }
     }
@@ -193,8 +204,6 @@ public class Main {
     final int nOfDescriptors = 10;
     final BufferedReader individualReader = new BufferedReader(
             new FileReader("/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/pointnav_me_poly_bests.csv"));
-    final BufferedReader sizeReader = new BufferedReader(
-            new FileReader("/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/pointnav_me_poly_sizes.csv"));
     MapElitesTrajectoryDrawer drawer = new MapElitesTrajectoryDrawer(
             Arena.Prepared.DECIMAL_MAZE.arena(),
             MapElitesTrajectoryDrawer.Mode.RANK,
@@ -202,19 +211,19 @@ public class Main {
     );
     Pair<MEIndividual, Integer>[][] individuals = new Pair[10][400];
     individualReader.readLine();
-    sizeReader.readLine();
     for (int i = 0; i < 10; ++i) {
       for (int j = 0; j < 400; ++j) {
-        // seed;fitness;id;parent_id;rank;final_x;final_y
-        String[] splitLine = individualReader.readLine().split(";");
+        // seed;fitness;id;parent_id;absolute_rank;relative_rank;final_x;final_y;bin_x;bin_y
+        String[] splitLine = individualReader.readLine().split(",");
         individuals[i][j] = new Pair<>(
                 new MEIndividual(
-                        new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6])),
+                        new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
                         Double.parseDouble(splitLine[1]),
                         Integer.parseInt(splitLine[4]),
-                        (int) Math.floor(Double.parseDouble(splitLine[5]) * 10),
-                        (int) Math.floor(Double.parseDouble(splitLine[6]) * 10)),
-                Integer.parseInt(sizeReader.readLine().split(";")[2]));
+                        Integer.parseInt(splitLine[8]),
+                        Integer.parseInt(splitLine[9])
+                ),
+                Integer.parseInt(splitLine[5]));
       }
     }
     for (int i = 0; i < 10; ++i) {
