@@ -109,6 +109,17 @@ public class NumericalDynamicalSystems {
   }
 
   @SuppressWarnings("unused")
+  public static Builder<MultiDimensionPolynomial2D, StatelessSystem.State> mdPolynomial2d(
+          @Param(value = "degree", dI = 1) int degree, @Param(value = "clip", dB = true) boolean clip) {
+    return (xVarNames, yVarNames) -> {
+      if (xVarNames.size() != 2) {
+        throw new IllegalArgumentException("Bruh");
+      }
+      return new MultiDimensionPolynomial2D(yVarNames.size(), degree, clip);
+    };
+  }
+
+  @SuppressWarnings("unused")
   public static Builder<MultiLayerPerceptron, StatelessSystem.State> mlp(
           @Param(value = "innerLayerRatio", dD = 0.65) double innerLayerRatio,
           @Param(value = "nOfInnerLayers", dI = 1) int nOfInnerLayers,
