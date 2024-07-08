@@ -19,7 +19,6 @@
  */
 package io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers;
 
-import io.github.ericmedvet.jnb.datastructure.Pair;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
@@ -30,7 +29,7 @@ import java.awt.geom.Ellipse2D;
 import java.util.Objects;
 
 public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer
-    implements Drawer<Pair<MEIndividual, Integer>[][]> {
+    implements Drawer<MEIndividual[][]> {
   private final RBTConfiguration configuration;
 
   public record RBTConfiguration(
@@ -66,22 +65,21 @@ public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
   }
 
   @Override
-  public void draw(Graphics2D g, Pair<MEIndividual, Integer>[][] individualsAndSizes) {
+  public void draw(Graphics2D g, MEIndividual[][] individuals) {
     AffineTransform previousTransform = setTransform(g, arena, configuration);
     drawArena(g, configuration);
     g.setStroke(new BasicStroke(
         (float) (configuration.trajectoryThickness / g.getTransform().getScaleX())));
-    if (Objects.isNull(individualsAndSizes)) {
+    if (Objects.isNull(individuals)) {
       return;
     }
-    for (Pair<MEIndividual, Integer>[] run : individualsAndSizes) {
-      Point basePoint = run[0].first().point();
+    for (MEIndividual[] run : individuals) {
+      Point basePoint = run[0].point();
       for (int i = 0; i < run.length; ++i) {
         do {
           ++i;
-        } while (i < run.length && basePoint.equals(run[i].first().point()));
-        double relativePosition = run[i - 1].first().rank() / (double) run[i - 1].second();
-        Color color = getColor(Color.GREEN, Color.YELLOW, Color.RED, relativePosition);
+        } while (i < run.length && basePoint.equals(run[i].point()));
+        Color color = getColor(Color.GREEN, Color.YELLOW, Color.RED, run[i - 1].relative_rank());
         Ellipse2D circle = new Ellipse2D.Double(
             basePoint.x() - configuration.circleRadius,
             basePoint.y() - configuration.circleRadius,
@@ -93,8 +91,8 @@ public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
         g.draw(circle);
         if (i < run.length) {
           g.setColor(configuration.arrowColor);
-          drawArrow(g, basePoint, run[i].first().point());
-          basePoint = run[i].first().point();
+          drawArrow(g, basePoint, run[i].point());
+          basePoint = run[i].point();
         }
       }
     }

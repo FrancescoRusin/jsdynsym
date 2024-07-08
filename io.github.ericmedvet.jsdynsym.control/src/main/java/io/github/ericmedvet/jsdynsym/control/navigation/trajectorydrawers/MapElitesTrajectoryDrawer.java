@@ -32,7 +32,7 @@ import java.util.List;
 
 @SuppressWarnings("unchecked")
 public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer
-    implements Drawer<Pair<MEIndividual, Integer>[][]> {
+    implements Drawer<MEIndividual[][]> {
   private final METConfiguration configuration;
 
   public enum Mode {
@@ -79,8 +79,8 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
   }
 
   @Override
-  public void draw(Graphics2D g, Pair<MEIndividual, Integer>[][] individualsAndSizes) {
-    if (Objects.isNull(individualsAndSizes) || individualsAndSizes.length == 0) {
+  public void draw(Graphics2D g, MEIndividual[][] individuals) {
+    if (Objects.isNull(individuals) || individuals.length == 0) {
       return;
     }
     AffineTransform previousTransform = setTransform(g, arena, configuration);
@@ -96,11 +96,10 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
         rankCounter[i][j] = new ArrayList<>();
       }
     }
-    for (Pair<MEIndividual, Integer>[] run : individualsAndSizes) {
-      for (Pair<MEIndividual, Integer> individual : run) {
-        ++visitCounter[individual.first().bin1()][individual.first().bin2()];
-        rankCounter[individual.first().bin1()][individual.first().bin2()].add(
-            (double) individual.first().rank() / individual.second());
+    for (MEIndividual[] run : individuals) {
+      for (MEIndividual individual : run) {
+        ++visitCounter[individual.bin1()][individual.bin2()];
+        rankCounter[individual.bin1()][individual.bin2()].add(individual.relative_rank());
       }
     }
     g.setStroke(new BasicStroke(
@@ -164,15 +163,15 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
     Map<Pair<Integer, Integer>, Integer> locations = new HashMap<>();
     g.setColor(configuration.arrowColor);
     // draw arrows
-    for (Pair<MEIndividual, Integer>[] run : individualsAndSizes) {
-      int prevBinX = run[0].first().bin1();
-      int prevBinY = run[0].first().bin2();
+    for (MEIndividual[] run : individuals) {
+      int prevBinX = run[0].bin1();
+      int prevBinY = run[0].bin2();
       for (int i = 1; i < run.length; ++i) {
-        int currBinX = run[i].first().bin1();
-        int currBinY = run[i].first().bin2();
+        int currBinX = run[i].bin1();
+        int currBinY = run[i].bin2();
         if (currBinX == prevBinX
             && currBinY == prevBinY
-            && run[i].first().fitness() != run[i - 1].first().fitness()) {
+            && run[i].fitness() != run[i - 1].fitness()) {
           // a surprise tool that will help us later
           Pair<Integer, Integer> p = new Pair<>(prevBinX, prevBinY);
           if (locations.containsKey(p)) {

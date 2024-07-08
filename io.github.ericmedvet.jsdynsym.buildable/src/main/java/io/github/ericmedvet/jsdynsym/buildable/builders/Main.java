@@ -36,114 +36,78 @@
 package io.github.ericmedvet.jsdynsym.buildable.builders;
 
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
-import io.github.ericmedvet.jnb.datastructure.Pair;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment;
-import io.github.ericmedvet.jsdynsym.control.navigation.VectorFieldDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.BaseTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MEIndividual;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MapElitesTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.RankBasedTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.core.numerical.MultiDimensionPolynomial;
-import io.github.ericmedvet.jsdynsym.core.numerical.MultiDimensionPolynomial2D;
 import io.github.ericmedvet.jviz.core.drawer.ImageBuilder;
+
 import java.io.*;
 import java.util.*;
 
-@SuppressWarnings("unused, unchecked")
+@SuppressWarnings("unused")
 public class Main {
+  private static final String path = "/home/francescorusin/Desktop/Work/MapElites/Current/Decimal_crop/";
+
   public static void main(String[] args) throws Exception {
-    polyTest();
+    for (String file : List.of("pointnav_barrier_nn", "pointnav_barrier_poly", "pointnav_maze_nn")) {
+      baseDraw(file);
+      MERankDraw(file);
+      STNDraw(file);
+    }
   }
 
   public static void polyTest() {
     MultiDimensionPolynomial poly = new MultiDimensionPolynomial(3, 2, 2);
-    poly.setParams(new double[] {
-      1d, 1d, 0d, 1d, 0d, 0d, 1d, 0d, 0d, 0d,
-      0d, 0d, 1d, 0d, 0d, 1d, 0d, 0d, 0d, 1d
+    poly.setParams(new double[]{
+            1d, 1d, 0d, 1d, 0d, 0d, 1d, 0d, 0d, 0d,
+            0d, 0d, 1d, 0d, 0d, 1d, 0d, 0d, 0d, 1d
     });
     System.out.println(Arrays.stream(poly.compute(.5, -1d, 1d)).boxed().toList());
   }
 
-  public static void vectorFieldDraw() throws IOException, ClassNotFoundException {
-    final VectorFieldDrawer drawer =
-        new VectorFieldDrawer(Arena.Prepared.DECIMAL_MAZE.arena(), VectorFieldDrawer.Configuration.DEFAULT);
-    final BufferedReader reader = new BufferedReader(new FileReader(
-        "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/pointnav_me_poly_all.csv"));
-    final MultiDimensionPolynomial2D polynomial = new MultiDimensionPolynomial2D(2, 3, true);
-    reader.readLine();
-    String line = reader.readLine();
-    String bestGen = "";
-    double bestFitness = Double.MAX_VALUE;
-    int prevSeed = -10;
-    while (Objects.nonNull(line)) {
-      String[] splitLine = line.split(";");
-      if (Double.parseDouble(splitLine[5]) < bestFitness) {
-        bestGen = splitLine[splitLine.length - 1];
-        bestFitness = Double.parseDouble(splitLine[5]);
-      }
-      if (Integer.parseInt(splitLine[2]) != prevSeed) {
-        bestFitness = Double.MAX_VALUE;
-        polynomial.setParams(((List<Double>) new ObjectInputStream(new ByteArrayInputStream(
-                    Base64.getDecoder().decode(bestGen)))
-                .readObject())
-            .stream().mapToDouble(d -> d).toArray());
-        drawer.save(
-            new ImageBuilder.ImageInfo(500, 500),
-            new File(
-                "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/pointnav_me_poly_vecfield_%d.png"
-                    .formatted(prevSeed + 10)),
-            polynomial);
-        ++prevSeed;
-      }
-      line = reader.readLine();
-    }
-    polynomial.setParams(((List<Double>) new ObjectInputStream(
-                new ByteArrayInputStream(Base64.getDecoder().decode(bestGen)))
-            .readObject())
-        .stream().mapToDouble(d -> d).toArray());
-    drawer.save(
-        new ImageBuilder.ImageInfo(500, 500),
-        new File(
-            "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/pointnav_me_poly_vecfield_9.png"),
-        polynomial);
-  }
-
-  public static void arenaDraw() throws IOException {
+  public static void arenaDraw(Arena.Prepared arena) throws IOException {
     final PointNavigationDrawer drawer = new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT);
     drawer.save(
-        new ImageBuilder.ImageInfo(500, 500),
-        new File("/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/labyrinth.png"),
-        () -> new TreeMap<>(Map.of(
-            0d,
-            new SingleAgentTask.Step<>(
-                new double[] {0d, 0d},
-                new double[] {0d, 0d},
-                new PointNavigationEnvironment.State(
-                    new PointNavigationEnvironment.Configuration(
-                        new DoubleRange(.5, .5),
-                        new DoubleRange(.75, .75),
-                        new DoubleRange(.5, .5),
-                        new DoubleRange(.15, .15),
-                        1,
-                        1,
-                        Arena.Prepared.DECIMAL_MAZE.arena(),
-                        true,
-                        new Random()),
-                    new Point(.5, .15),
-                    new Point(.5, .75),
-                    0)))));
+            new ImageBuilder.ImageInfo(500, 500),
+            new File(path + "Drawings/" + arena.name() + ".png"),
+            () -> new TreeMap<>(Map.of(
+                    0d,
+                    new SingleAgentTask.Step<>(
+                            new double[]{0d, 0d},
+                            new double[]{0d, 0d},
+                            new PointNavigationEnvironment.State(
+                                    new PointNavigationEnvironment.Configuration(
+                                            new DoubleRange(.5, .5),
+                                            new DoubleRange(.75, .75),
+                                            new DoubleRange(.5, .5),
+                                            new DoubleRange(.15, .15),
+                                            1,
+                                            1,
+                                            arena.arena(),
+                                            true,
+                                            new Random()),
+                                    new Point(.5, .15),
+                                    new Point(.5, .75),
+                                    0)))));
   }
 
-  public static void baseDraw() throws IOException {
-    final String alg = "me";
+  public static void baseDraw(String file) throws IOException {
     final BufferedReader reader = new BufferedReader(new FileReader(
-        "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/pointnav_me_poly_bests.csv"));
-    BaseTrajectoryDrawer drawer =
-        new BaseTrajectoryDrawer(Arena.Prepared.DECIMAL_MAZE.arena(), BaseTrajectoryDrawer.Mode.GRADIENT);
+            path + "Csv/" + file + "_bests.csv"));
+    String arenaString = extractArena(file);
+    final Arena arena = switch (arenaString) {
+      case "Barrier" -> Arena.Prepared.A_BARRIER.arena();
+      case "Maze" -> Arena.Prepared.DECIMAL_MAZE.arena();
+      default -> Arena.Prepared.EMPTY.arena();
+    };
+    BaseTrajectoryDrawer drawer = new BaseTrajectoryDrawer(arena, BaseTrajectoryDrawer.Mode.GRADIENT);
     Point[][] trajectories = new Point[10][400];
     reader.readLine();
     for (int i = 0; i < 10; ++i) {
@@ -153,89 +117,97 @@ public class Main {
       }
     }
     drawer.save(
-        new ImageBuilder.ImageInfo(500, 500),
-        new File(
-            "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/pointnav_me_poly_opt_trajectory_grad.png"),
-        trajectories);
+            new ImageBuilder.ImageInfo(500, 500),
+            new File(path + "Drawings/%s/%s_opt_trajectory_grad.png".formatted(arenaString, file)),
+            trajectories);
     for (int i = 0; i < trajectories.length; ++i) {
       drawer.save(
-          new ImageBuilder.ImageInfo(500, 500),
-          new File(
-              "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/pointnav_me_poly_opt_trajectory_grad_%d.png"
-                  .formatted(i)),
-          new Point[][] {trajectories[i]});
+              new ImageBuilder.ImageInfo(500, 500),
+              new File(path + "Drawings/%s/%s_opt_trajectory_grad_%d.png".formatted(arenaString, file, i)),
+              new Point[][]{trajectories[i]});
     }
   }
 
-  public static void MERankDraw() throws IOException {
+  public static void MERankDraw(String file) throws IOException {
     final BufferedReader individualReader = new BufferedReader(new FileReader(
-        "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/pointnav_me_poly_bests.csv"));
+            path + "Csv/" + file + "_bests.csv"));
     final BufferedReader sizeReader = new BufferedReader(new FileReader(
-        "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/pointnav_me_poly_sizes.csv"));
-    RankBasedTrajectoryDrawer drawer = new RankBasedTrajectoryDrawer(Arena.Prepared.DECIMAL_MAZE.arena());
-    Pair<MEIndividual, Integer>[][] individuals = new Pair[10][400];
+            path + "Csv/" + file + "_sizes.csv"));
+    String arenaString = extractArena(file);
+    final Arena arena = switch (arenaString) {
+      case "Barrier" -> Arena.Prepared.A_BARRIER.arena();
+      case "Maze" -> Arena.Prepared.DECIMAL_MAZE.arena();
+      default -> Arena.Prepared.EMPTY.arena();
+    };
+    RankBasedTrajectoryDrawer drawer = new RankBasedTrajectoryDrawer(arena);
+    MEIndividual[][] individuals = new MEIndividual[10][400];
     individualReader.readLine();
     sizeReader.readLine();
     for (int i = 0; i < 10; ++i) {
       for (int j = 0; j < 400; ++j) {
         // seed;fitness;id;parent_id;absolute_rank;relative_rank;final_x;final_y;bin_x;bin_y
         String[] splitLine = individualReader.readLine().split(",");
-        individuals[i][j] = new Pair<>(
-            new MEIndividual(
+        individuals[i][j] = new MEIndividual(
                 new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
                 Double.parseDouble(splitLine[1]),
                 Integer.parseInt(splitLine[4]),
+                Double.parseDouble(splitLine[5]),
                 Integer.parseInt(splitLine[8]),
-                Integer.parseInt(splitLine[9])),
-            Integer.parseInt(sizeReader.readLine().split(";")[2]));
+                Integer.parseInt(splitLine[9]));
       }
     }
     drawer.save(
-        new ImageBuilder.ImageInfo(500, 500),
-        new File(
-            "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/pointnav_me_poly_opt_trajectory_rank.png"),
-        individuals);
+            new ImageBuilder.ImageInfo(500, 500),
+            new File(
+                    path + "Drawings/%s/%s_opt_trajectory_rank.png".formatted(arenaString, file)),
+            individuals);
     for (int i = 0; i < individuals.length; ++i) {
       drawer.save(
-          new ImageBuilder.ImageInfo(500, 500),
-          new File(
-              "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/pointnav_me_poly_opt_trajectory_rank_%d.png"
-                  .formatted(i)),
-          new Pair[][] {individuals[i]});
+              new ImageBuilder.ImageInfo(500, 500),
+              new File(path + "Drawings/%s/%s_opt_trajectory_rank_%d.png".formatted(arenaString, file, i)),
+              new MEIndividual[][]{individuals[i]});
     }
   }
 
-  public static void STNDraw() throws IOException {
+  public static void STNDraw(String file) throws IOException {
     final int nOfDescriptors = 10;
     final BufferedReader individualReader = new BufferedReader(new FileReader(
-        "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/pointnav_me_poly_bests.csv"));
+            path + "Csv/" + file + "_bests.csv"));
+    String arenaString = extractArena(file);
+    final Arena arena = switch (arenaString) {
+      case "Barrier" -> Arena.Prepared.A_BARRIER.arena();
+      case "Maze" -> Arena.Prepared.DECIMAL_MAZE.arena();
+      default -> Arena.Prepared.EMPTY.arena();
+    };
     MapElitesTrajectoryDrawer drawer = new MapElitesTrajectoryDrawer(
-        Arena.Prepared.DECIMAL_MAZE.arena(),
-        MapElitesTrajectoryDrawer.Mode.RANK,
-        new Point(1d / nOfDescriptors, 1d / nOfDescriptors));
-    Pair<MEIndividual, Integer>[][] individuals = new Pair[10][400];
+            arena,
+            MapElitesTrajectoryDrawer.Mode.RANK,
+            new Point(1d / nOfDescriptors, 1d / nOfDescriptors));
+    MEIndividual[][] individuals = new MEIndividual[10][400];
     individualReader.readLine();
     for (int i = 0; i < 10; ++i) {
       for (int j = 0; j < 400; ++j) {
         // seed;fitness;id;parent_id;absolute_rank;relative_rank;final_x;final_y;bin_x;bin_y
         String[] splitLine = individualReader.readLine().split(",");
-        individuals[i][j] = new Pair<>(
-            new MEIndividual(
+        individuals[i][j] = new MEIndividual(
                 new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
                 Double.parseDouble(splitLine[1]),
                 Integer.parseInt(splitLine[4]),
+                Double.parseDouble(splitLine[5]),
                 Integer.parseInt(splitLine[8]),
-                Integer.parseInt(splitLine[9])),
-            Integer.parseInt(splitLine[5]));
+                Integer.parseInt(splitLine[9]));
       }
     }
     for (int i = 0; i < 10; ++i) {
       drawer.save(
-          new ImageBuilder.ImageInfo(500, 500),
-          new File(
-              "/home/francescorusin/Desktop/Work/MapElites/Poly/Decimal_crop/Drawings/pointnav_me_poly_opt_trajectory_stn_rank_%d.png"
-                  .formatted(i)),
-          new Pair[][] {individuals[i]});
+              new ImageBuilder.ImageInfo(500, 500),
+              new File(path + "Drawings/%s/%s_opt_trajectory_stn_rank_%d.png".formatted(arenaString, file, i)),
+              new MEIndividual[][]{individuals[i]});
     }
+  }
+
+  private static String extractArena(String expFile) {
+    String arenaString = expFile.split("_")[1];
+    return arenaString.substring(0, 1).toUpperCase() + arenaString.substring(1);
   }
 }
