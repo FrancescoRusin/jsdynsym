@@ -56,7 +56,7 @@ public class Main {
   private static final String path = "/home/francescorusin/Desktop/Work/MapElites/Current/Decimal_crop/";
 
   public static void main(String[] args) throws Exception {
-    for (String file : List.of("pointnav_barrier_nn", "pointnav_barrier_poly", "pointnav_maze_nn")) {
+    for (String file : List.of("pointnav_maze_tree")) {
       baseDraw(file);
       MERankDraw(file);
       STNDraw(file);
