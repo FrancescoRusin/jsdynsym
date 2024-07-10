@@ -99,7 +99,8 @@ public class Main {
 
   public static void baseDraw(String file) throws IOException {
     final BufferedReader reader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
-    String arenaString = extractArena(file);
+    final String controllerString = extractController(file);
+    final String arenaString = extractArena(file);
     final Arena arena =
         switch (arenaString) {
           case "Barrier" -> Arena.Prepared.A_BARRIER.arena();
@@ -117,12 +118,12 @@ public class Main {
     }
     drawer.save(
         new ImageBuilder.ImageInfo(500, 500),
-        new File(path + "Drawings/%s/%s_opt_trajectory_grad.png".formatted(arenaString, file)),
+        new File(path + "Drawings/%s/%s_opt_trajectory_grad.png".formatted(controllerString, file)),
         trajectories);
     for (int i = 0; i < trajectories.length; ++i) {
       drawer.save(
           new ImageBuilder.ImageInfo(500, 500),
-          new File(path + "Drawings/%s/%s_opt_trajectory_grad_%d.png".formatted(arenaString, file, i)),
+          new File(path + "Drawings/%s/%s_opt_trajectory_grad_%d.png".formatted(controllerString, file, i)),
           new Point[][] {trajectories[i]});
     }
   }
@@ -130,6 +131,7 @@ public class Main {
   public static void MERankDraw(String file) throws IOException {
     final BufferedReader individualReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
     final BufferedReader sizeReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_sizes.csv"));
+    final String controllerString = extractController(file);
     String arenaString = extractArena(file);
     final Arena arena =
         switch (arenaString) {
@@ -156,12 +158,12 @@ public class Main {
     }
     drawer.save(
         new ImageBuilder.ImageInfo(500, 500),
-        new File(path + "Drawings/%s/%s_opt_trajectory_rank.png".formatted(arenaString, file)),
+        new File(path + "Drawings/%s/%s_opt_trajectory_rank.png".formatted(controllerString, file)),
         individuals);
     for (int i = 0; i < individuals.length; ++i) {
       drawer.save(
           new ImageBuilder.ImageInfo(500, 500),
-          new File(path + "Drawings/%s/%s_opt_trajectory_rank_%d.png".formatted(arenaString, file, i)),
+          new File(path + "Drawings/%s/%s_opt_trajectory_rank_%d.png".formatted(controllerString, file, i)),
           new MEIndividual[][] {individuals[i]});
     }
   }
@@ -169,7 +171,8 @@ public class Main {
   public static void STNDraw(String file) throws IOException {
     final int nOfDescriptors = 10;
     final BufferedReader individualReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
-    String arenaString = extractArena(file);
+    final String controllerString = extractController(file);
+    final String arenaString = extractArena(file);
     final Arena arena =
         switch (arenaString) {
           case "Barrier" -> Arena.Prepared.A_BARRIER.arena();
@@ -196,13 +199,18 @@ public class Main {
     for (int i = 0; i < 10; ++i) {
       drawer.save(
           new ImageBuilder.ImageInfo(500, 500),
-          new File(path + "Drawings/%s/%s_opt_trajectory_stn_rank_%d.png".formatted(arenaString, file, i)),
+          new File(path + "Drawings/%s/%s_opt_trajectory_stn_rank_%d.png".formatted(controllerString, file, i)),
           new MEIndividual[][] {individuals[i]});
     }
   }
 
   private static String extractArena(String expFile) {
     String arenaString = expFile.split("_")[1];
+    return arenaString.substring(0, 1).toUpperCase() + arenaString.substring(1);
+  }
+
+  private static String extractController(String expFile) {
+    String arenaString = expFile.split("_")[2];
     return arenaString.substring(0, 1).toUpperCase() + arenaString.substring(1);
   }
 }
