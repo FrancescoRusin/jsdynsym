@@ -19,7 +19,6 @@
  */
 package io.github.ericmedvet.jsdynsym.control.navigation;
 
-import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalTimeInvariantStatelessSystem;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
@@ -34,20 +33,18 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
   private final Arena arena;
 
   public record Configuration(
-          Color arrowColor,
-          Color segmentColor,
-          double arrowHeadSize,
-          double arrowHeadWidth,
-          float arrowThickness,
-          float segmentThickness,
-          double step,
-          double marginRate,
-          boolean rescale,
-          boolean unitCrop) {
+      Color arrowColor,
+      Color segmentColor,
+      double arrowHeadSize,
+      double arrowHeadWidth,
+      float arrowThickness,
+      float segmentThickness,
+      double step,
+      double marginRate,
+      boolean rescale) {
 
-    public Configuration(boolean unitCrop) {
-      this(Color.RED, Color.DARK_GRAY, .02, .01, .002f, 3, .05, .01, true, unitCrop);
-    }
+    public static final Configuration DEFAULT =
+        new Configuration(Color.RED, Color.DARK_GRAY, .02, .01, .002f, 3, .05, .01, true);
   }
 
   public VectorFieldDrawer(Arena arena, Configuration configuration) {
@@ -59,12 +56,12 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
   public void draw(Graphics2D g, NumericalTimeInvariantStatelessSystem dynSys) {
     if (dynSys.nOfInputs() != 2 || dynSys.nOfOutputs() != 2) {
       throw new IllegalArgumentException(String.format(
-              "Requested 2 inputs and 2 outputs, found %d and %d", dynSys.nOfInputs(), dynSys.nOfOutputs()));
+          "Requested 2 inputs and 2 outputs, found %d and %d", dynSys.nOfInputs(), dynSys.nOfOutputs()));
     }
     AffineTransform previousTransform = setTransform(g, arena);
     // draw arena
     g.setStroke(new BasicStroke(
-            (float) (configuration.segmentThickness / g.getTransform().getScaleX())));
+        (float) (configuration.segmentThickness / g.getTransform().getScaleX())));
     g.setColor(configuration.segmentColor);
     arena.segments().forEach(s -> g.draw(new Line2D.Double(s.p1().x(), s.p1().y(), s.p2().x(), s.p2().y())));
     int stepsOnX = (int) Math.floor(1d / configuration.step);
@@ -74,7 +71,7 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
     double max = 0d;
     for (int i = 0; i < stepsOnX; ++i) {
       for (int j = 0; j < stepsOnY; ++j) {
-        double[] input = new double[]{topLeftX + i * configuration.step, topLeftY + j * configuration.step};
+        double[] input = new double[] {topLeftX + i * configuration.step, topLeftY + j * configuration.step};
         if (configuration.rescale) {
           input[0] = 2 * input[0] - 1;
           input[1] = 2 * input[1] - 1;
@@ -85,7 +82,7 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
     }
     for (int i = 0; i < stepsOnX; ++i) {
       for (int j = 0; j < stepsOnY; ++j) {
-        double[] input = new double[]{topLeftX + i * configuration.step, topLeftY + j * configuration.step};
+        double[] input = new double[] {topLeftX + i * configuration.step, topLeftY + j * configuration.step};
         Point inputPoint = new Point(input[0], input[1]);
         // rescale input
         if (configuration.rescale) {
@@ -93,10 +90,6 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
           input[1] = 2 * input[1] - 1;
         }
         double[] output = dynSys.apply(input);
-        if (configuration.unitCrop) {
-          output[0] = DoubleRange.SYMMETRIC_UNIT.clip(output[0]);
-          output[1] = DoubleRange.SYMMETRIC_UNIT.clip(output[1]);
-        }
         drawArrow(g, inputPoint, new Point(output[0] / max, output[1] / max));
       }
     }
@@ -110,12 +103,12 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
     double cH = g.getClipBounds().height;
     // compute transformation
     double scale = Math.min(
-            cW / (1 + 2 * configuration.marginRate) / arena.xExtent(),
-            cH / (1 + 2 * configuration.marginRate) / arena.yExtent());
+        cW / (1 + 2 * configuration.marginRate) / arena.xExtent(),
+        cH / (1 + 2 * configuration.marginRate) / arena.yExtent());
     AffineTransform previousTransform = g.getTransform();
     AffineTransform transform = AffineTransform.getScaleInstance(scale, scale);
     transform.translate(
-            (cX / scale + cW / scale - arena.xExtent()) / 2d, (cY / scale + cH / scale - arena.yExtent()) / 2d);
+        (cX / scale + cW / scale - arena.xExtent()) / 2d, (cY / scale + cH / scale - arena.yExtent()) / 2d);
     g.setTransform(transform);
     return previousTransform;
   }

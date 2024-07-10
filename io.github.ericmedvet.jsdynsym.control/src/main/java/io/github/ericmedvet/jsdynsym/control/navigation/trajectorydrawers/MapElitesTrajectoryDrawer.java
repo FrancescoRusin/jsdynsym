@@ -31,8 +31,7 @@ import java.util.*;
 import java.util.List;
 
 @SuppressWarnings("unchecked")
-public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer
-    implements Drawer<MEIndividual[][]> {
+public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer implements Drawer<MEIndividual[][]> {
   private final METConfiguration configuration;
 
   public enum Mode {
@@ -169,9 +168,7 @@ public class MapElitesTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
       for (int i = 1; i < run.length; ++i) {
         int currBinX = run[i].bin1();
         int currBinY = run[i].bin2();
-        if (currBinX == prevBinX
-            && currBinY == prevBinY
-            && run[i].fitness() != run[i - 1].fitness()) {
+        if (currBinX == prevBinX && currBinY == prevBinY && run[i].fitness() != run[i - 1].fitness()) {
           // a surprise tool that will help us later
           Pair<Integer, Integer> p = new Pair<>(prevBinX, prevBinY);
           if (locations.containsKey(p)) {

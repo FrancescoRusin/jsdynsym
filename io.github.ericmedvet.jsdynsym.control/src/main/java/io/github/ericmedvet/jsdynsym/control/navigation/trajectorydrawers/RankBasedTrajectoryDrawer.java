@@ -28,8 +28,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.util.Objects;
 
-public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer
-    implements Drawer<MEIndividual[][]> {
+public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer implements Drawer<MEIndividual[][]> {
   private final RBTConfiguration configuration;
 
   public record RBTConfiguration(
