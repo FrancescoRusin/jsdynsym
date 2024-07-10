@@ -19,6 +19,7 @@
  */
 package io.github.ericmedvet.jsdynsym.control.navigation;
 
+import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalTimeInvariantStatelessSystem;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
@@ -41,10 +42,11 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
       float segmentThickness,
       double step,
       double marginRate,
-      boolean rescale) {
+      boolean rescale,
+      boolean unitClip) {
 
     public static final Configuration DEFAULT =
-        new Configuration(Color.RED, Color.DARK_GRAY, .02, .01, .002f, 3, .05, .01, true);
+        new Configuration(Color.RED, Color.DARK_GRAY, .02, .01, .002f, 3, .05, .01, true, true);
   }
 
   public VectorFieldDrawer(Arena arena, Configuration configuration) {
@@ -77,6 +79,10 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
           input[1] = 2 * input[1] - 1;
         }
         double[] output = dynSys.apply(input);
+        if (configuration.unitClip) {
+          output[0] = DoubleRange.SYMMETRIC_UNIT.clip(output[0]);
+          output[1] = DoubleRange.SYMMETRIC_UNIT.clip(output[1]);
+        }
         max = Math.max(max, Math.sqrt(output[0] * output[0] + output[1] * output[1]));
       }
     }
@@ -90,6 +96,10 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
           input[1] = 2 * input[1] - 1;
         }
         double[] output = dynSys.apply(input);
+        if (configuration.unitClip) {
+          output[0] = DoubleRange.SYMMETRIC_UNIT.clip(output[0]);
+          output[1] = DoubleRange.SYMMETRIC_UNIT.clip(output[1]);
+        }
         drawArrow(g, inputPoint, new Point(output[0] / max, output[1] / max));
       }
     }
