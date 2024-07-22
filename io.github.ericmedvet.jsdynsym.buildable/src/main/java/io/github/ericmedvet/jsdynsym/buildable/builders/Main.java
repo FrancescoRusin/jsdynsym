@@ -199,7 +199,8 @@ public class Main {
     for (int i = 0; i < 10; ++i) {
       drawer.save(
           new ImageBuilder.ImageInfo(500, 500),
-          new File(path + "Drawings/%s/%s_opt_trajectory_stn_rank_%d.png".formatted(controllerString, file, i)),
+          new File(path
+              + "Drawings/%s/%s_opt_trajectory_stn_rank_%d.png".formatted(controllerString, file, i)),
           new MEIndividual[][] {individuals[i]});
     }
   }
