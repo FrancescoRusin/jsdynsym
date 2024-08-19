@@ -17,21 +17,11 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
-package io.github.ericmedvet.jsdynsym.control.geometry;
+package io.github.ericmedvet.jsdynsym.control;
 
-import java.util.Optional;
-
-public record Semiline(Point p, double a) {
-  public Optional<Point> interception(Segment s) {
-    Line l = Line.from(p, a);
-    Optional<Point> oIP = l.interception(s);
-    if (oIP.isEmpty()) {
-      return oIP;
-    }
-    Point iP = oIP.orElseThrow();
-    if (Math.abs((iP.diff(p).direction() - a) % (2 * Math.PI)) > Math.PI / 2d) {
-      return Optional.empty();
-    }
-    return oIP;
-  }
+/**
+ * @author "Eric Medvet" on 2024/07/24 for jsdynsym
+ */
+public interface SimulationWithExample<T, S, O extends Simulation.Outcome<S>> extends Simulation<T, S, O> {
+  T example();
 }
