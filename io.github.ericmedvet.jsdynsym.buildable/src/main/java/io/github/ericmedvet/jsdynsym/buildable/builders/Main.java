@@ -55,7 +55,7 @@ public class Main {
   private static final String path = "/home/francescorusin/Desktop/Work/MapElites/Current/Decimal_crop/";
 
   public static void main(String[] args) throws Exception {
-    for (String file : List.of("pointnav_maze_tree")) {
+    for (String file : List.of("robotnav_maze_poly", "robotnav_maze_nn", "robotnav_maze_tree")) {
       baseDraw(file);
       MERankDraw(file);
       STNDraw(file);
@@ -212,6 +212,9 @@ public class Main {
 
   private static String extractController(String expFile) {
     String arenaString = expFile.split("_")[2];
+    if (arenaString.equals("nn")) {
+      arenaString = "NN";
+    }
     return arenaString.substring(0, 1).toUpperCase() + arenaString.substring(1);
   }
 }
