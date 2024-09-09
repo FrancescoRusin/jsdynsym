@@ -92,7 +92,15 @@ public record Arena(double xExtent, double yExtent, List<Segment> obstacles) {
         1,
         List.of(
             new Segment(new Point(0, 0.3), new Point(0.7, 0.3)),
-            new Segment(new Point(1, 0.6), new Point(0.3, 0.6)))));
+            new Segment(new Point(1, 0.6), new Point(0.3, 0.6))))),
+    BLOCKY_MAZE(new Arena(
+        1,
+        1,
+        List.of(
+            new Segment(new Point(0, 0.3), new Point(0.7, 0.3)),
+            new Segment(new Point(1, 0.6), new Point(0.3, 0.6)),
+            new Segment(new Point(0.7, 0.2), new Point(0.7, 0.4)),
+            new Segment(new Point(0.3, 0.5), new Point(0.3, 0.7)))));
 
     private final Arena arena;
 
