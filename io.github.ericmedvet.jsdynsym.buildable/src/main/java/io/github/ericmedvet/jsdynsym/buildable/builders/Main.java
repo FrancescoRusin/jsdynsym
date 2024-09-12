@@ -52,13 +52,17 @@ import java.util.*;
 
 @SuppressWarnings("unused")
 public class Main {
-  private static final String path = "/home/francescorusin/Desktop/Work/MapElites/Current/Decimal_crop/";
+  private static final String path = "/home/francescorusin/Desktop/Work/MapElites/GA/";
 
   public static void main(String[] args) throws Exception {
-    for (String file : List.of("robotnav_maze_poly", "robotnav_maze_nn", "robotnav_maze_tree")) {
-      baseDraw(file);
-      MERankDraw(file);
-      STNDraw(file);
+    for (String robot : List.of("robotnav_")) {
+      for (String arena : List.of("blocky_", "maze_")) {
+        for (String controller : List.of("poly", "nn", "tree")) {
+          baseDraw(robot + arena + controller);
+          MERankDraw(robot + arena + controller);
+          STNDraw(robot + arena + controller);
+        }
+      }
     }
   }
 
@@ -100,13 +104,7 @@ public class Main {
   public static void baseDraw(String file) throws IOException {
     final BufferedReader reader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
     final String controllerString = extractController(file);
-    final String arenaString = extractArena(file);
-    final Arena arena =
-        switch (arenaString) {
-          case "Barrier" -> Arena.Prepared.A_BARRIER.arena();
-          case "Maze" -> Arena.Prepared.DECIMAL_MAZE.arena();
-          default -> Arena.Prepared.EMPTY.arena();
-        };
+    final Arena arena = extractArena(file);
     BaseTrajectoryDrawer drawer = new BaseTrajectoryDrawer(arena, BaseTrajectoryDrawer.Mode.GRADIENT);
     Point[][] trajectories = new Point[10][400];
     reader.readLine();
@@ -132,13 +130,7 @@ public class Main {
     final BufferedReader individualReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
     final BufferedReader sizeReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_sizes.csv"));
     final String controllerString = extractController(file);
-    String arenaString = extractArena(file);
-    final Arena arena =
-        switch (arenaString) {
-          case "Barrier" -> Arena.Prepared.A_BARRIER.arena();
-          case "Maze" -> Arena.Prepared.DECIMAL_MAZE.arena();
-          default -> Arena.Prepared.EMPTY.arena();
-        };
+    final Arena arena = extractArena(file);
     RankBasedTrajectoryDrawer drawer = new RankBasedTrajectoryDrawer(arena);
     MEIndividual[][] individuals = new MEIndividual[10][400];
     individualReader.readLine();
@@ -172,13 +164,7 @@ public class Main {
     final int nOfDescriptors = 10;
     final BufferedReader individualReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
     final String controllerString = extractController(file);
-    final String arenaString = extractArena(file);
-    final Arena arena =
-        switch (arenaString) {
-          case "Barrier" -> Arena.Prepared.A_BARRIER.arena();
-          case "Maze" -> Arena.Prepared.DECIMAL_MAZE.arena();
-          default -> Arena.Prepared.EMPTY.arena();
-        };
+    final Arena arena = extractArena(file);
     MapElitesTrajectoryDrawer drawer = new MapElitesTrajectoryDrawer(
         arena, MapElitesTrajectoryDrawer.Mode.RANK, new Point(1d / nOfDescriptors, 1d / nOfDescriptors));
     MEIndividual[][] individuals = new MEIndividual[10][400];
@@ -205,9 +191,13 @@ public class Main {
     }
   }
 
-  private static String extractArena(String expFile) {
-    String arenaString = expFile.split("_")[1];
-    return arenaString.substring(0, 1).toUpperCase() + arenaString.substring(1);
+  private static Arena extractArena(String expFile) {
+    return switch (expFile.split("_")[1]) {
+      case "barrier" -> Arena.Prepared.A_BARRIER.arena();
+      case "maze" -> Arena.Prepared.DECIMAL_MAZE.arena();
+      case "blocky" -> Arena.Prepared.BLOCKY_MAZE.arena();
+      default -> Arena.Prepared.EMPTY.arena();
+    };
   }
 
   private static String extractController(String expFile) {
