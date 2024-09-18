@@ -55,12 +55,11 @@ public class Main {
   private static final String path = "/home/francescorusin/Desktop/Work/MapElites/GA/";
 
   public static void main(String[] args) throws Exception {
-    for (String robot : List.of("robotnav_")) {
+    for (String robot : List.of("pointnav_", "robotnav_")) {
       for (String arena : List.of("blocky_", "maze_")) {
         for (String controller : List.of("poly", "nn", "tree")) {
-          baseDraw(robot + arena + controller);
-          MERankDraw(robot + arena + controller);
-          STNDraw(robot + arena + controller);
+          //STNDraw(robot + arena + controller);
+          GabrielaRefactor(robot + arena + controller, true);
         }
       }
     }
@@ -68,9 +67,9 @@ public class Main {
 
   public static void polyTest() {
     MultiDimensionPolynomial poly = new MultiDimensionPolynomial(3, 2, 2);
-    poly.setParams(new double[] {
-      1d, 1d, 0d, 1d, 0d, 0d, 1d, 0d, 0d, 0d,
-      0d, 0d, 1d, 0d, 0d, 1d, 0d, 0d, 0d, 1d
+    poly.setParams(new double[]{
+            1d, 1d, 0d, 1d, 0d, 0d, 1d, 0d, 0d, 0d,
+            0d, 0d, 1d, 0d, 0d, 1d, 0d, 0d, 0d, 1d
     });
     System.out.println(Arrays.stream(poly.compute(.5, -1d, 1d)).boxed().toList());
   }
@@ -78,29 +77,30 @@ public class Main {
   public static void arenaDraw(Arena.Prepared arena) throws IOException {
     final PointNavigationDrawer drawer = new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT);
     drawer.save(
-        new ImageBuilder.ImageInfo(500, 500),
-        new File(path + "Drawings/" + arena.name() + ".png"),
-        () -> new TreeMap<>(Map.of(
-            0d,
-            new SingleAgentTask.Step<>(
-                new double[] {0d, 0d},
-                new double[] {0d, 0d},
-                new PointNavigationEnvironment.State(
-                    new PointNavigationEnvironment.Configuration(
-                        new DoubleRange(.5, .5),
-                        new DoubleRange(.75, .75),
-                        new DoubleRange(.5, .5),
-                        new DoubleRange(.15, .15),
-                        1,
-                        1,
-                        arena.arena(),
-                        true,
-                        new Random()),
-                    new Point(.5, .15),
-                    new Point(.5, .75),
-                    0)))));
+            new ImageBuilder.ImageInfo(500, 500),
+            new File(path + arena.name() + ".png"),
+            () -> new TreeMap<>(Map.of(
+                    0d,
+                    new SingleAgentTask.Step<>(
+                            new double[]{0d, 0d},
+                            new double[]{0d, 0d},
+                            new PointNavigationEnvironment.State(
+                                    new PointNavigationEnvironment.Configuration(
+                                            new DoubleRange(.5, .5),
+                                            new DoubleRange(.75, .75),
+                                            new DoubleRange(.5, .5),
+                                            new DoubleRange(.15, .15),
+                                            1,
+                                            1,
+                                            arena.arena(),
+                                            true,
+                                            new Random()),
+                                    new Point(.5, .15),
+                                    new Point(.5, .75),
+                                    0)))));
   }
 
+  // BUGGED!
   public static void baseDraw(String file) throws IOException {
     final BufferedReader reader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
     final String controllerString = extractController(file);
@@ -115,17 +115,18 @@ public class Main {
       }
     }
     drawer.save(
-        new ImageBuilder.ImageInfo(500, 500),
-        new File(path + "Drawings/%s/%s_opt_trajectory_grad.png".formatted(controllerString, file)),
-        trajectories);
+            new ImageBuilder.ImageInfo(500, 500),
+            new File(path + "Drawings/%s/%s_opt_trajectory_grad.png".formatted(controllerString, file)),
+            trajectories);
     for (int i = 0; i < trajectories.length; ++i) {
       drawer.save(
-          new ImageBuilder.ImageInfo(500, 500),
-          new File(path + "Drawings/%s/%s_opt_trajectory_grad_%d.png".formatted(controllerString, file, i)),
-          new Point[][] {trajectories[i]});
+              new ImageBuilder.ImageInfo(500, 500),
+              new File(path + "Drawings/%s/%s_opt_trajectory_grad_%d.png".formatted(controllerString, file, i)),
+              new Point[][]{trajectories[i]});
     }
   }
 
+  // BUGGED!
   public static void MERankDraw(String file) throws IOException {
     final BufferedReader individualReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
     final BufferedReader sizeReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_sizes.csv"));
@@ -140,23 +141,23 @@ public class Main {
         // seed;fitness;id;parent_id;absolute_rank;relative_rank;final_x;final_y;bin_x;bin_y
         String[] splitLine = individualReader.readLine().split(",");
         individuals[i][j] = new MEIndividual(
-            new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
-            Double.parseDouble(splitLine[1]),
-            Integer.parseInt(splitLine[4]),
-            Double.parseDouble(splitLine[5]),
-            Integer.parseInt(splitLine[8]),
-            Integer.parseInt(splitLine[9]));
+                new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
+                Double.parseDouble(splitLine[1]),
+                Integer.parseInt(splitLine[4]),
+                Double.parseDouble(splitLine[5]),
+                Integer.parseInt(splitLine[8]),
+                Integer.parseInt(splitLine[9]));
       }
     }
     drawer.save(
-        new ImageBuilder.ImageInfo(500, 500),
-        new File(path + "Drawings/%s/%s_opt_trajectory_rank.png".formatted(controllerString, file)),
-        individuals);
+            new ImageBuilder.ImageInfo(500, 500),
+            new File(path + "Drawings/%s/%s_opt_trajectory_rank.png".formatted(controllerString, file)),
+            individuals);
     for (int i = 0; i < individuals.length; ++i) {
       drawer.save(
-          new ImageBuilder.ImageInfo(500, 500),
-          new File(path + "Drawings/%s/%s_opt_trajectory_rank_%d.png".formatted(controllerString, file, i)),
-          new MEIndividual[][] {individuals[i]});
+              new ImageBuilder.ImageInfo(500, 500),
+              new File(path + "Drawings/%s/%s_opt_trajectory_rank_%d.png".formatted(controllerString, file, i)),
+              new MEIndividual[][]{individuals[i]});
     }
   }
 
@@ -166,28 +167,35 @@ public class Main {
     final String controllerString = extractController(file);
     final Arena arena = extractArena(file);
     MapElitesTrajectoryDrawer drawer = new MapElitesTrajectoryDrawer(
-        arena, MapElitesTrajectoryDrawer.Mode.RANK, new Point(1d / nOfDescriptors, 1d / nOfDescriptors));
-    MEIndividual[][] individuals = new MEIndividual[10][400];
+            arena, MapElitesTrajectoryDrawer.Mode.RANK, new Point(1d / nOfDescriptors, 1d / nOfDescriptors));
+    MEIndividual[][] individuals = new MEIndividual[10][500];
     individualReader.readLine();
     for (int i = 0; i < 10; ++i) {
-      for (int j = 0; j < 400; ++j) {
+      for (int j = 0; j < 500; ++j) {
         // seed;fitness;id;parent_id;absolute_rank;relative_rank;final_x;final_y;bin_x;bin_y
-        String[] splitLine = individualReader.readLine().split(",");
+        String[] splitLine = individualReader.readLine().split(","); // ; for GA
         individuals[i][j] = new MEIndividual(
-            new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
-            Double.parseDouble(splitLine[1]),
-            Integer.parseInt(splitLine[4]),
-            Double.parseDouble(splitLine[5]),
-            Integer.parseInt(splitLine[8]),
-            Integer.parseInt(splitLine[9]));
+                new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
+                Double.parseDouble(splitLine[1]),
+                Integer.parseInt(splitLine[4]),
+                Double.parseDouble(splitLine[5]),
+                Integer.parseInt(splitLine[8]),
+                Integer.parseInt(splitLine[9]));
+        /*individuals[i][j] = new MEIndividual(
+                new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6])),
+                Double.parseDouble(splitLine[1]),
+                Integer.parseInt(splitLine[4]),
+                Double.parseDouble(splitLine[4]) / 199,
+                (int) (Double.parseDouble(splitLine[5]) * 10), (int) (Double.parseDouble(splitLine[6]) * 10)
+        );*/
       }
     }
     for (int i = 0; i < 10; ++i) {
       drawer.save(
-          new ImageBuilder.ImageInfo(500, 500),
-          new File(path
-              + "Drawings/%s/%s_opt_trajectory_stn_rank_%d.png".formatted(controllerString, file, i)),
-          new MEIndividual[][] {individuals[i]});
+              new ImageBuilder.ImageInfo(500, 500),
+              new File(path
+                      + "Drawings/%s/%s_opt_trajectory_stn_rank_%d.png".formatted(controllerString, file, i)),
+              new MEIndividual[][]{individuals[i]});
     }
   }
 
@@ -206,5 +214,42 @@ public class Main {
       arenaString = "NN";
     }
     return arenaString.substring(0, 1).toUpperCase() + arenaString.substring(1);
+  }
+
+  public static void GabrielaRefactor(String file, boolean GA) throws IOException {
+    final int nOfDescriptors = 10;
+    final BufferedReader individualReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
+    final BufferedWriter individualWriter = new BufferedWriter(new FileWriter(path + "Csv/Upload/" + file + (GA ? "_ga" : "_me") + ".csv"));
+    individualWriter.write("seed,fitness,id,parent_id,absolute_rank,relative_rank,final_x,final_y,bin_1,bin_2\n");
+    final String controllerString = extractController(file);
+    final Arena arena = extractArena(file);
+    MEIndividual ind;
+    individualReader.readLine();
+    for (int i = 0; i < 10; ++i) {
+      for (int j = 0; j < 500; ++j) {
+        // seed;fitness;id;parent_id;absolute_rank;relative_rank;final_x;final_y;bin_x;bin_y
+        String[] splitLine = individualReader.readLine().split(GA ? ";" : ","); // ; for GA
+        ind = GA ? new MEIndividual(
+                new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6])),
+                Double.parseDouble(splitLine[1]),
+                Integer.parseInt(splitLine[4]),
+                Double.parseDouble(splitLine[4]) / 199,
+                (int) (Double.parseDouble(splitLine[5]) * nOfDescriptors),
+                (int) (Double.parseDouble(splitLine[6]) * nOfDescriptors)
+        ) : new MEIndividual(
+                new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
+                Double.parseDouble(splitLine[1]),
+                Integer.parseInt(splitLine[4]),
+                Double.parseDouble(splitLine[5]),
+                Integer.parseInt(splitLine[8]),
+                Integer.parseInt(splitLine[9]));
+        individualWriter.write("%d,%f,%d,%d,%d,%f,%f,%f,%d,%d\n".formatted(
+                        i, ind.fitness(), Integer.parseInt(splitLine[2]), Integer.parseInt(splitLine[3]),
+                        ind.absolute_rank(), ind.relative_rank(), ind.point().x(), ind.point().y(), ind.bin1(), ind.bin2()
+                )
+        );
+      }
+    }
+    individualWriter.close();
   }
 }
