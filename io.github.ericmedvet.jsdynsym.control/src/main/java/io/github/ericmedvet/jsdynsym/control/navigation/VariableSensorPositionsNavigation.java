@@ -29,9 +29,7 @@ import io.github.ericmedvet.jsdynsym.core.numerical.NumericalStatelessSystem;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * @author "Eric Medvet" on 2024/07/24 for jgea
- */
+/** @author "Eric Medvet" on 2024/07/24 for jgea */
 public class VariableSensorPositionsNavigation
     implements SimulationWithExample<
         Pair<List<Double>, NumericalDynamicalSystem<?>>,
@@ -41,13 +39,19 @@ public class VariableSensorPositionsNavigation
   private final int nOfSensors;
   private final DoubleRange tRange;
   private final double dT;
+  private final boolean sortSensorAngles;
 
   public VariableSensorPositionsNavigation(
-      NavigationEnvironment.Configuration configuration, int nOfSensors, DoubleRange tRange, double dT) {
+      NavigationEnvironment.Configuration configuration,
+      int nOfSensors,
+      DoubleRange tRange,
+      double dT,
+      boolean sortSensorAngles) {
     this.configuration = configuration;
     this.nOfSensors = nOfSensors;
     this.tRange = tRange;
     this.dT = dT;
+    this.sortSensorAngles = sortSensorAngles;
   }
 
   @Override
@@ -57,7 +61,14 @@ public class VariableSensorPositionsNavigation
       throw new IllegalArgumentException("Wrong number of sensor angles: %d found, %d expected"
           .formatted(pair.first().size(), nOfSensors));
     }
-    return SingleAgentTask.fromEnvironment(new NavigationEnvironment(configuration(pair.first())), tRange, dT)
+    return SingleAgentTask.fromEnvironment(
+            new NavigationEnvironment(
+                sortSensorAngles
+                    ? configuration(pair.first())
+                    : configuration(
+                        pair.first().stream().sorted().toList())),
+            tRange,
+            dT)
         .simulate(pair.second());
   }
 

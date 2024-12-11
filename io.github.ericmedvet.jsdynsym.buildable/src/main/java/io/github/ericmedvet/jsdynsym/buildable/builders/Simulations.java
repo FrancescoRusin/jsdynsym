@@ -29,9 +29,7 @@ import io.github.ericmedvet.jsdynsym.control.navigation.VariableSensorPositionsN
 import java.util.List;
 import java.util.random.RandomGenerator;
 
-/**
- * @author "Eric Medvet" on 2024/07/24 for jsdynsym
- */
+/** @author "Eric Medvet" on 2024/07/24 for jsdynsym */
 @Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.simulation|sim|s")
 public class Simulations {
   private Simulations() {}
@@ -53,6 +51,7 @@ public class Simulations {
       @Param(value = "senseTarget", dB = true) boolean senseTarget,
       @Param(value = "arena", dS = "empty") Arena.Prepared arena,
       @Param(value = "rescaleInput", dB = true) boolean rescaleInput,
+      @Param(value = "sortAngles", dB = true) boolean sortAngles,
       @Param(value = "randomGenerator", dNPM = "m.defaultRG()") RandomGenerator randomGenerator,
       @Param(value = "dT", dD = 0.1) double dT,
       @Param(value = "initialT", dD = 0) double initialT,
@@ -74,6 +73,7 @@ public class Simulations {
             randomGenerator),
         nOfSensors,
         new DoubleRange(initialT, finalT),
-        dT);
+        dT,
+        sortAngles);
   }
 }

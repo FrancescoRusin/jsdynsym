@@ -17,261 +17,108 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
-/*
- * Copyright 2024 eric
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 package io.github.ericmedvet.jsdynsym.buildable.builders;
 
+import io.github.ericmedvet.jnb.core.NamedBuilder;
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
+import io.github.ericmedvet.jsdynsym.control.Simulation;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
-import io.github.ericmedvet.jsdynsym.control.geometry.Point;
-import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
-import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
-import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment;
-import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.BaseTrajectoryDrawer;
-import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MEIndividual;
-import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.MapElitesTrajectoryDrawer;
-import io.github.ericmedvet.jsdynsym.control.navigation.trajectorydrawers.RankBasedTrajectoryDrawer;
-import io.github.ericmedvet.jsdynsym.core.numerical.MultiDimensionPolynomial;
+import io.github.ericmedvet.jsdynsym.control.navigation.*;
+import io.github.ericmedvet.jsdynsym.core.DynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
 import io.github.ericmedvet.jviz.core.drawer.ImageBuilder;
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Random;
+import java.util.function.Function;
 
-@SuppressWarnings({"unused", "unchecked"})
 public class Main {
-  private static final String path = "/home/francescorusin/Desktop/Work/MapElites/GA/";
-
-  public static void main(String[] args) throws Exception {
-    /*for (String robot : List.of("pointnav_", "robotnav_")) {
-      for (String arena : List.of("blocky_", "maze_")) {
-        for (String controller : List.of("poly", "nn", "tree")) {
-          GabrielaRefactor(robot + arena + controller, true);
-        }
-      }
-    }*/
+  public static void main(String[] args) throws IOException {
+    navigation();
+    // pointNavigation();
   }
 
-  public static void nnVals() throws Exception {
-    final BufferedReader reader = new BufferedReader(new FileReader("/home/francescorusin/Desktop/Work/MapElites/i_just_need_a_genotype.csv"));
-    String line;
-    reader.readLine();
-    double currMin = 1;
-    String currGen = "";
-    while (Objects.nonNull(line = reader.readLine())) {
-      final String[] splitL = line.split(";");
-      final double fitness = Double.parseDouble(splitL[4]);
-      if (fitness < currMin) {
-        currMin = fitness;
-        currGen = splitL[5];
-      }
-    }
-    ByteArrayInputStream bais = new ByteArrayInputStream(Base64.getDecoder().decode(currGen));
-    ObjectInputStream ois = new ObjectInputStream(bais);
-    List<Double> genotype =  (List<Double>) ois.readObject();
-    MultiLayerPerceptron mlp = NumericalDynamicalSystems.mlp(2.0, 1, MultiLayerPerceptron.ActivationFunction.TANH).apply(2, 2);
-    mlp.setParams(genotype.stream().mapToDouble(d -> d).toArray());
-    // TODO
+  @SuppressWarnings("unchecked")
+  public static void pointNavVisual() {
+    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
+    String genotype =
+        "rO0ABXNyABNqYXZhLnV0aWwuQXJyYXlMaXN0eIHSHZnHYZ0DAAFJAARzaXpleHAAAAAWdwQAAAAWc3IAEGphdmEubGFuZy5Eb3VibGWAs8JKKWv7BAIAAUQABXZhbHVleHIAEGphdmEubGFuZy5OdW1iZXKGrJUdC5TgiwIAAHhwP+HfAxn4soBzcQB+AAI/5/cWGhuXynNxAH4AAr/VPpwJHdyAc3EAfgACv8jBAcrQY6BzcQB+AAK/5cwX9vm3MnNxAH4AAj/desmMrqzYc3EAfgACv8/9cWhZJnhzcQB+AAK/z1669BZtQHNxAH4AAj+/BbKVlmMwc3EAfgACv+biExNRExBzcQB+AAI/2NINXFEfoHNxAH4AAr/n8MgDN+0Mc3EAfgACP8gJ2fyu00hzcQB+AAK/7FiZq3ZpsHNxAH4AAr/sodjxwbdqc3EAfgACP8oN6i+X/JhzcQB+AAK/zzJxehFIqHNxAH4AAr/mXy4s9PQic3EAfgACP4xC3kyxYYBzcQB+AAI/4yais6r7EHNxAH4AAj/YYcjqIOGgc3EAfgACP+HNfeh3wOZ4";
+    Function<String, Object> decoder = (Function<String, Object>) nb.build("f.fromBase64()");
+    List<Double> actualGenotype = (List<Double>) decoder.apply(genotype);
+    PointNavigationEnvironment environment = (PointNavigationEnvironment)
+        nb.build("ds.e.pointNavigation(arena = E_MAZE;initialRobotXRange = m.range(min = 0.5; max = 0.55);"
+            + "initialRobotYRange = m.range(min = 0.75; max = 0.75);robotMaxV = 0.05)");
+    MultiLayerPerceptron mlp = ((NumericalDynamicalSystems.Builder<MultiLayerPerceptron, ?>)
+            nb.build("ds.num.mlp(innerLayerRatio = 2.0)"))
+        .apply(environment.nOfOutputs(), environment.nOfInputs());
+    mlp.setParams(actualGenotype.stream().mapToDouble(d -> d).toArray());
+    SingleAgentTask<DynamicalSystem<double[], double[], ?>, double[], double[], PointNavigationEnvironment.State>
+        task = SingleAgentTask.fromEnvironment(
+            environment,
+            new double[2],
+            s -> s.robotPosition().distance(s.targetPosition()) < .01,
+            new DoubleRange(0, 100),
+            0.1);
+    Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>> outcome =
+        task.simulate(mlp);
+    PointNavigationDrawer d = new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT);
+    d.show(new ImageBuilder.ImageInfo(500, 500), outcome);
+    Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>>, Double>
+        fitness = (Function<
+                Simulation.Outcome<
+                    SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>>,
+                Double>)
+            nb.build("ds.e.n.finalTimePlusD()");
+    System.out.println(fitness.apply(outcome));
+    /*VectorFieldDrawer vfd =
+    new VectorFieldDrawer(Arena.Prepared.E_MAZE.arena(), VectorFieldDrawer.Configuration.DEFAULT);
+    vfd.show(new ImageBuilder.ImageInfo(500, 500), mlp);*/
   }
 
-  public static void arenaDraw(Arena.Prepared arena) throws IOException {
-    final PointNavigationDrawer drawer = new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT);
-    drawer.save(
-        new ImageBuilder.ImageInfo(500, 500),
-        new File(path + arena.name() + ".png"),
-        () -> new TreeMap<>(Map.of(
-            0d,
-            new SingleAgentTask.Step<>(
-                new double[] {0d, 0d},
-                new double[] {0d, 0d},
-                new PointNavigationEnvironment.State(
-                    new PointNavigationEnvironment.Configuration(
-                        new DoubleRange(.5, .5),
-                        new DoubleRange(.75, .75),
-                        new DoubleRange(.5, .5),
-                        new DoubleRange(.15, .15),
-                        1,
-                        1,
-                        arena.arena(),
-                        true,
-                        new Random()),
-                    new Point(.5, .15),
-                    new Point(.5, .75),
-                    0)))));
+  public static void pointNavigation() {
+    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
+    PointNavigationEnvironment environment =
+        (PointNavigationEnvironment) nb.build("ds.e.pointNavigation(arena = E_MAZE)");
+    @SuppressWarnings("unchecked")
+    MultiLayerPerceptron mlp = ((NumericalDynamicalSystems.Builder<MultiLayerPerceptron, ?>)
+            nb.build("ds.num.mlp()"))
+        .apply(environment.nOfOutputs(), environment.nOfInputs());
+    mlp.randomize(new Random(), DoubleRange.SYMMETRIC_UNIT);
+    VectorFieldDrawer vfd =
+        new VectorFieldDrawer(Arena.Prepared.E_MAZE.arena(), VectorFieldDrawer.Configuration.DEFAULT);
+    vfd.show(new ImageBuilder.ImageInfo(500, 500), mlp);
+    SingleAgentTask<DynamicalSystem<double[], double[], ?>, double[], double[], PointNavigationEnvironment.State>
+        task = SingleAgentTask.fromEnvironment(environment, new double[2], new DoubleRange(0, 10), 0.1);
+    Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>> outcome =
+        task.simulate(mlp);
+    new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT)
+        .videoBuilder()
+        .save(new File("../point-navigation.mp4"), outcome);
   }
 
-  // BUGGED!
-  public static void baseDraw(String file) throws IOException {
-    final BufferedReader reader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
-    final String controllerString = extractController(file);
-    final Arena arena = extractArena(file);
-    BaseTrajectoryDrawer drawer = new BaseTrajectoryDrawer(arena, BaseTrajectoryDrawer.Mode.GRADIENT);
-    Point[][] trajectories = new Point[10][400];
-    reader.readLine();
-    for (int i = 0; i < 10; ++i) {
-      for (int j = 0; j < 400; ++j) {
-        String[] splitLine = reader.readLine().split(",");
-        trajectories[i][j] = new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7]));
-      }
-    }
-    drawer.save(
-        new ImageBuilder.ImageInfo(500, 500),
-        new File(path + "Drawings/%s/%s_opt_trajectory_grad.png".formatted(controllerString, file)),
-        trajectories);
-    for (int i = 0; i < trajectories.length; ++i) {
-      drawer.save(
-          new ImageBuilder.ImageInfo(500, 500),
-          new File(path + "Drawings/%s/%s_opt_trajectory_grad_%d.png".formatted(controllerString, file, i)),
-          new Point[][] {trajectories[i]});
-    }
-  }
-
-  // BUGGED!
-  public static void MERankDraw(String file) throws IOException {
-    final BufferedReader individualReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
-    final BufferedReader sizeReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_sizes.csv"));
-    final String controllerString = extractController(file);
-    final Arena arena = extractArena(file);
-    RankBasedTrajectoryDrawer drawer = new RankBasedTrajectoryDrawer(arena);
-    MEIndividual[][] individuals = new MEIndividual[10][400];
-    individualReader.readLine();
-    sizeReader.readLine();
-    for (int i = 0; i < 10; ++i) {
-      for (int j = 0; j < 400; ++j) {
-        // seed;fitness;id;parent_id;absolute_rank;relative_rank;final_x;final_y;bin_x;bin_y
-        String[] splitLine = individualReader.readLine().split(",");
-        individuals[i][j] = new MEIndividual(
-            new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
-            Double.parseDouble(splitLine[1]),
-            Integer.parseInt(splitLine[4]),
-            Double.parseDouble(splitLine[5]),
-            Integer.parseInt(splitLine[8]),
-            Integer.parseInt(splitLine[9]));
-      }
-    }
-    drawer.save(
-        new ImageBuilder.ImageInfo(500, 500),
-        new File(path + "Drawings/%s/%s_opt_trajectory_rank.png".formatted(controllerString, file)),
-        individuals);
-    for (int i = 0; i < individuals.length; ++i) {
-      drawer.save(
-          new ImageBuilder.ImageInfo(500, 500),
-          new File(path + "Drawings/%s/%s_opt_trajectory_rank_%d.png".formatted(controllerString, file, i)),
-          new MEIndividual[][] {individuals[i]});
-    }
-  }
-
-  public static void STNDraw(String file) throws IOException {
-    final int nOfDescriptors = 10;
-    final BufferedReader individualReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
-    final String controllerString = extractController(file);
-    final Arena arena = extractArena(file);
-    MapElitesTrajectoryDrawer drawer = new MapElitesTrajectoryDrawer(
-        arena, MapElitesTrajectoryDrawer.Mode.RANK, new Point(1d / nOfDescriptors, 1d / nOfDescriptors));
-    MEIndividual[][] individuals = new MEIndividual[10][500];
-    individualReader.readLine();
-    for (int i = 0; i < 10; ++i) {
-      for (int j = 0; j < 500; ++j) {
-        // seed;fitness;id;parent_id;absolute_rank;relative_rank;final_x;final_y;bin_x;bin_y
-        String[] splitLine = individualReader.readLine().split(","); // ; for GA
-        individuals[i][j] = new MEIndividual(
-            new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
-            Double.parseDouble(splitLine[1]),
-            Integer.parseInt(splitLine[4]),
-            Double.parseDouble(splitLine[5]),
-            Integer.parseInt(splitLine[8]),
-            Integer.parseInt(splitLine[9]));
-        /*individuals[i][j] = new MEIndividual(
-        new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6])),
-        Double.parseDouble(splitLine[1]),
-        Integer.parseInt(splitLine[4]),
-        Double.parseDouble(splitLine[4]) / 199,
-        (int) (Double.parseDouble(splitLine[5]) * 10), (int) (Double.parseDouble(splitLine[6]) * 10)
-        );*/
-      }
-    }
-    for (int i = 0; i < 10; ++i) {
-      drawer.save(
-          new ImageBuilder.ImageInfo(500, 500),
-          new File(path
-              + "Drawings/%s/%s_opt_trajectory_stn_rank_%d.png".formatted(controllerString, file, i)),
-          new MEIndividual[][] {individuals[i]});
-    }
-  }
-
-  private static Arena extractArena(String expFile) {
-    return switch (expFile.split("_")[1]) {
-      case "barrier" -> Arena.Prepared.A_BARRIER.arena();
-      case "maze" -> Arena.Prepared.DECIMAL_MAZE.arena();
-      case "blocky" -> Arena.Prepared.BLOCKY_MAZE.arena();
-      default -> Arena.Prepared.EMPTY.arena();
-    };
-  }
-
-  private static String extractController(String expFile) {
-    String arenaString = expFile.split("_")[2];
-    if (arenaString.equals("nn")) {
-      arenaString = "NN";
-    }
-    return arenaString.substring(0, 1).toUpperCase() + arenaString.substring(1);
-  }
-
-  public static void GabrielaRefactor(String file, boolean GA) throws IOException {
-    final int nOfDescriptors = 10;
-    final BufferedReader individualReader = new BufferedReader(new FileReader(path + "Csv/" + file + "_bests.csv"));
-    final BufferedWriter individualWriter =
-        new BufferedWriter(new FileWriter(path + "Csv/Upload/" + file + (GA ? "_ga" : "_me") + ".csv"));
-    individualWriter.write("seed,fitness,id,parent_id,absolute_rank,relative_rank,final_x,final_y,bin_1,bin_2\n");
-    final String controllerString = extractController(file);
-    final Arena arena = extractArena(file);
-    MEIndividual ind;
-    individualReader.readLine();
-    for (int i = 0; i < 10; ++i) {
-      for (int j = 0; j < 500; ++j) {
-        // seed;fitness;id;parent_id;absolute_rank;relative_rank;final_x;final_y;bin_x;bin_y
-        String[] splitLine = individualReader.readLine().split(GA ? ";" : ","); // ; for GA
-        ind = GA
-            ? new MEIndividual(
-                new Point(Double.parseDouble(splitLine[5]), Double.parseDouble(splitLine[6])),
-                Double.parseDouble(splitLine[1]),
-                Integer.parseInt(splitLine[4]),
-                Double.parseDouble(splitLine[4]) / 199,
-                (int) (Double.parseDouble(splitLine[5]) * nOfDescriptors),
-                (int) (Double.parseDouble(splitLine[6]) * nOfDescriptors))
-            : new MEIndividual(
-                new Point(Double.parseDouble(splitLine[6]), Double.parseDouble(splitLine[7])),
-                Double.parseDouble(splitLine[1]),
-                Integer.parseInt(splitLine[4]),
-                Double.parseDouble(splitLine[5]),
-                Integer.parseInt(splitLine[8]),
-                Integer.parseInt(splitLine[9]));
-        individualWriter.write("%d,%f,%d,%d,%d,%f,%f,%f,%d,%d\n"
-            .formatted(
-                i,
-                ind.fitness(),
-                Integer.parseInt(splitLine[2]),
-                Integer.parseInt(splitLine[3]),
-                ind.absolute_rank(),
-                ind.relative_rank(),
-                ind.point().x(),
-                ind.point().y(),
-                ind.bin1(),
-                ind.bin2()));
-      }
-    }
-    individualWriter.close();
+  public static void navigation() {
+    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
+    NavigationEnvironment environment = (NavigationEnvironment) nb.build("ds.e.navigation(arena = E_MAZE)");
+    @SuppressWarnings("unchecked")
+    MultiLayerPerceptron mlp = ((NumericalDynamicalSystems.Builder<MultiLayerPerceptron, ?>)
+            nb.build("ds.num.mlp()"))
+        .apply(environment.nOfOutputs(), environment.nOfInputs());
+    mlp.randomize(new Random(), DoubleRange.SYMMETRIC_UNIT);
+    SingleAgentTask<DynamicalSystem<double[], double[], ?>, double[], double[], NavigationEnvironment.State> task =
+        SingleAgentTask.fromEnvironment(environment, new double[2], new DoubleRange(0, 30), 0.1);
+    Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> outcome =
+        task.simulate(mlp);
+    NavigationDrawer d = new NavigationDrawer(NavigationDrawer.Configuration.DEFAULT);
+    @SuppressWarnings("unchecked")
+    Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>
+        fitness = (Function<
+                Simulation.Outcome<
+                    SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>,
+                Double>)
+            nb.build("ds.e.n.arenaCoverage()");
+    System.out.println(fitness.apply(outcome));
+    d.show(outcome);
   }
 }
