@@ -39,8 +39,8 @@ public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
       float segmentThickness,
       double pointThickness,
       double pointInternAlpha,
-      double marginRate)
-      implements Configuration {
+      double marginRate
+  ) implements Configuration {
     public RBTConfiguration() {
       this(
           Configuration.DEFAULT_SEGMENT_COLOR,
@@ -50,7 +50,8 @@ public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
           Configuration.DEFAULT_SEGMENT_THICKNESS,
           Configuration.DEFAULT_TRAJECTORY_THICKNESS * 1.3,
           .3,
-          Configuration.DEFAULT_MARGIN_RATE);
+          Configuration.DEFAULT_MARGIN_RATE
+      );
     }
   }
 
@@ -67,8 +68,11 @@ public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
   public void draw(Graphics2D g, MEIndividual[][] individuals) {
     AffineTransform previousTransform = setTransform(g, arena, configuration);
     drawArena(g, configuration);
-    g.setStroke(new BasicStroke(
-        (float) (configuration.trajectoryThickness / g.getTransform().getScaleX())));
+    g.setStroke(
+        new BasicStroke(
+            (float) (configuration.trajectoryThickness / g.getTransform().getScaleX())
+        )
+    );
     if (Objects.isNull(individuals)) {
       return;
     }
@@ -83,7 +87,8 @@ public class RankBasedTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawe
             basePoint.x() - configuration.circleRadius,
             basePoint.y() - configuration.circleRadius,
             2 * configuration.circleRadius,
-            2 * configuration.circleRadius);
+            2 * configuration.circleRadius
+        );
         g.setColor(GraphicsUtils.alphaed(color, configuration.pointInternAlpha));
         g.fill(circle);
         g.setColor(color);

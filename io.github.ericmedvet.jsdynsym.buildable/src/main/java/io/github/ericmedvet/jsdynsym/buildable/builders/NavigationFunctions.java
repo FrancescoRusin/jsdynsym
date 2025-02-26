@@ -189,9 +189,9 @@ public class NavigationFunctions {
   @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> finalTimePlusD(
-      @Param(value = "of", dNPM = "f.identity()")
-          Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
-      @Param(value = "format", dS = "%5.3f") String format) {
+      @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
+      @Param(value = "format", dS = "%5.3f") String format
+  ) {
     Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>, Double> f = o -> {
       SortedMap<Double, SingleAgentTask.Step<double[], double[], State>> snapshots = o.snapshots();
       double stopTime = snapshots.lastKey();

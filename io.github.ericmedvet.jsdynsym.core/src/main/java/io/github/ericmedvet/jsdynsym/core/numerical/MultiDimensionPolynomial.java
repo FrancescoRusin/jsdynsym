@@ -24,16 +24,16 @@ import io.github.ericmedvet.jnb.datastructure.NumericalParametrized;
 import java.util.*;
 import java.util.stream.IntStream;
 
-public class MultiDimensionPolynomial
-    implements MultivariateRealFunction, NumericalParametrized<MultiDimensionPolynomial2D> {
+public class MultiDimensionPolynomial implements MultivariateRealFunction, NumericalParametrized<MultiDimensionPolynomial2D> {
   private final int degree;
   private final int nOfInputs;
   private final double[][] weights;
   private final boolean clip;
   private final int[][] unflatDegrees;
 
-  private static final TreeMap<Integer, Long> FACTORIAL_CACHE =
-      new TreeMap<>(Map.ofEntries(Map.entry(0, 1L), Map.entry(1, 1L)));
+  private static final TreeMap<Integer, Long> FACTORIAL_CACHE = new TreeMap<>(
+      Map.ofEntries(Map.entry(0, 1L), Map.entry(1, 1L))
+  );
   private static final TreeMap<Integer, TreeMap<Integer, Long>> COMBINATION_CACHE = new TreeMap<>();
 
   private static long factorial(int n) {
@@ -148,8 +148,10 @@ public class MultiDimensionPolynomial
   }
 
   public double[][] unflat(double[] flatWeights, int nOfOutputs) {
-    if (flatWeights.length % nOfOutputs != 0
-        || flatWeights.length / nOfOutputs != computeNOfCombinations(nOfInputs, degree)) {
+    if (flatWeights.length % nOfOutputs != 0 || flatWeights.length / nOfOutputs != computeNOfCombinations(
+        nOfInputs,
+        degree
+    )) {
       throw new IllegalArgumentException("Bruh");
     }
     double[][] result = new double[nOfOutputs][flatWeights.length / nOfOutputs];

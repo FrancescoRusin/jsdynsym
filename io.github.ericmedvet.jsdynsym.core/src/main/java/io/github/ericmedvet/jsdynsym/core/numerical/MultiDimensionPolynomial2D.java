@@ -23,8 +23,7 @@ import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jnb.datastructure.NumericalParametrized;
 import java.util.Arrays;
 
-public class MultiDimensionPolynomial2D
-    implements MultivariateRealFunction, NumericalParametrized<MultiDimensionPolynomial2D> {
+public class MultiDimensionPolynomial2D implements MultivariateRealFunction, NumericalParametrized<MultiDimensionPolynomial2D> {
   private final int degree;
   private final double[][] weights;
   private final boolean clip;

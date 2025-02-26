@@ -45,10 +45,21 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
       double step,
       double marginRate,
       boolean rescale,
-      boolean unitClip) {
+      boolean unitClip
+  ) {
 
-    public static final Configuration DEFAULT =
-        new Configuration(Color.RED, Color.DARK_GRAY, .02, .01, .002f, 3, .05, .01, true, true);
+    public static final Configuration DEFAULT = new Configuration(
+        Color.RED,
+        Color.DARK_GRAY,
+        .02,
+        .01,
+        .002f,
+        3,
+        .05,
+        .01,
+        true,
+        true
+    );
   }
 
   public VectorFieldDrawer(Arena arena, Configuration configuration) {

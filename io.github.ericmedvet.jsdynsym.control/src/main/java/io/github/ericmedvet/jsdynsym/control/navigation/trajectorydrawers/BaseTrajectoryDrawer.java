@@ -34,9 +34,7 @@ public class BaseTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer imp
   private final BTDConfiguration configuration;
 
   public enum Mode {
-    FIXED_ARROW,
-    FIXED_LINE,
-    GRADIENT
+    FIXED_ARROW, FIXED_LINE, GRADIENT
   }
 
   public record BTDConfiguration(
@@ -46,8 +44,8 @@ public class BaseTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer imp
       float trajectoryThickness,
       double circleRadius,
       float segmentThickness,
-      double marginRate)
-      implements Configuration {
+      double marginRate
+  ) implements Configuration {
     public BTDConfiguration(Mode mode) {
       this(
           mode,
@@ -56,7 +54,8 @@ public class BaseTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer imp
           Configuration.DEFAULT_TRAJECTORY_THICKNESS,
           Configuration.DEFAULT_CIRCLE_RADIUS,
           Configuration.DEFAULT_SEGMENT_THICKNESS,
-          Configuration.DEFAULT_MARGIN_RATE);
+          Configuration.DEFAULT_MARGIN_RATE
+      );
     }
   }
 
@@ -73,16 +72,22 @@ public class BaseTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer imp
   public void draw(Graphics2D g, Point[][] trajectories) {
     AffineTransform previousTransform = setTransform(g, arena, configuration);
     drawArena(g, configuration);
-    g.setStroke(new BasicStroke(
-        (float) (configuration.trajectoryThickness / g.getTransform().getScaleX())));
+    g.setStroke(
+        new BasicStroke(
+            (float) (configuration.trajectoryThickness / g.getTransform().getScaleX())
+        )
+    );
     if (Objects.isNull(trajectories)) {
       return;
     }
     switch (configuration.mode) {
       case FIXED_ARROW:
         g.setColor(configuration.arrowColor);
-        IntStream.range(0, trajectories.length).forEach(i -> IntStream.range(1, trajectories[i].length)
-            .forEach(j -> drawArrow(g, trajectories[i][j - 1], trajectories[i][j])));
+        IntStream.range(0, trajectories.length)
+            .forEach(
+                i -> IntStream.range(1, trajectories[i].length)
+                    .forEach(j -> drawArrow(g, trajectories[i][j - 1], trajectories[i][j]))
+            );
 
         break;
       case FIXED_LINE:
@@ -100,8 +105,14 @@ public class BaseTrajectoryDrawer extends AbstractArenaBasedTrajectoryDrawer imp
           for (int i = 0; i < trajectory.length - 1; ++i) {
             double tick = i / (double) (trajectory.length - 1);
             g.setColor(getColor(Color.RED, Color.YELLOW, Color.GREEN, tick));
-            g.draw(new Line2D.Double(
-                trajectory[i].x(), trajectory[i].y(), trajectory[i + 1].x(), trajectory[i + 1].y()));
+            g.draw(
+                new Line2D.Double(
+                    trajectory[i].x(),
+                    trajectory[i].y(),
+                    trajectory[i + 1].x(),
+                    trajectory[i + 1].y()
+                )
+            );
           }
         }
     }

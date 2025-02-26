@@ -40,11 +40,14 @@ public abstract class AbstractArenaBasedTrajectoryDrawer {
     // compute transformation
     double scale = Math.min(
         cW / (1 + 2 * configuration.marginRate()) / arena.xExtent(),
-        cH / (1 + 2 * configuration.marginRate()) / arena.yExtent());
+        cH / (1 + 2 * configuration.marginRate()) / arena.yExtent()
+    );
     AffineTransform previousTransform = g.getTransform();
     AffineTransform transform = AffineTransform.getScaleInstance(scale, scale);
     transform.translate(
-        (cX / scale + cW / scale - arena.xExtent()) / 2d, (cY / scale + cH / scale - arena.yExtent()) / 2d);
+        (cX / scale + cW / scale - arena.xExtent()) / 2d,
+        (cY / scale + cH / scale - arena.yExtent()) / 2d
+    );
     g.setTransform(transform);
     return previousTransform;
   }
@@ -56,12 +59,14 @@ public abstract class AbstractArenaBasedTrajectoryDrawer {
       return new Color(
           (int) (colorOne.getRed() * doubleT + colorMid.getRed() * (1 - doubleT)),
           (int) (colorOne.getGreen() * doubleT + colorMid.getGreen() * (1 - doubleT)),
-          (int) (colorOne.getBlue() * doubleT + colorMid.getBlue() * (1 - doubleT)));
+          (int) (colorOne.getBlue() * doubleT + colorMid.getBlue() * (1 - doubleT))
+      );
     } else {
       return new Color(
           (int) (colorMid.getRed() * doubleT + colorZero.getRed() * (1 - doubleT)),
           (int) (colorMid.getGreen() * doubleT + colorZero.getGreen() * (1 - doubleT)),
-          (int) (colorMid.getBlue() * doubleT + colorZero.getBlue() * (1 - doubleT)));
+          (int) (colorMid.getBlue() * doubleT + colorZero.getBlue() * (1 - doubleT))
+      );
     }
   }
 
@@ -82,8 +87,11 @@ public abstract class AbstractArenaBasedTrajectoryDrawer {
 
   protected void drawArena(Graphics2D g, Configuration configuration) {
     // draw arena
-    g.setStroke(new BasicStroke(
-        (float) (configuration.segmentThickness() / g.getTransform().getScaleX())));
+    g.setStroke(
+        new BasicStroke(
+            (float) (configuration.segmentThickness() / g.getTransform().getScaleX())
+        )
+    );
     g.setColor(configuration.segmentColor());
     arena.segments().forEach(s -> g.draw(new Line2D.Double(s.p1().x(), s.p1().y(), s.p2().x(), s.p2().y())));
   }
