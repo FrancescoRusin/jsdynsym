@@ -59,26 +59,31 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
   @Override
   public ImageInfo imageInfo(NumericalTimeInvariantStatelessSystem ntiss) {
     return new ImageInfo(
-        (int)
-            (arena.xExtent() > arena.yExtent()
-                ? DEFAULT_SIDE_LENGTH * arena.xExtent() / arena.yExtent()
-                : DEFAULT_SIDE_LENGTH),
-        (int)
-            (arena.xExtent() > arena.yExtent()
-                ? DEFAULT_SIDE_LENGTH
-                : DEFAULT_SIDE_LENGTH * arena.yExtent() / arena.xExtent()));
+        (int) (arena.xExtent() > arena.yExtent() ? DEFAULT_SIDE_LENGTH * arena.xExtent() / arena
+            .yExtent() : DEFAULT_SIDE_LENGTH),
+        (int) (arena.xExtent() > arena.yExtent() ? DEFAULT_SIDE_LENGTH : DEFAULT_SIDE_LENGTH * arena.yExtent() / arena
+            .xExtent())
+    );
   }
 
   @Override
   public void draw(Graphics2D g, NumericalTimeInvariantStatelessSystem dynSys) {
     if (dynSys.nOfInputs() != 2 || dynSys.nOfOutputs() != 2) {
-      throw new IllegalArgumentException(String.format(
-          "Requested 2 inputs and 2 outputs, found %d and %d", dynSys.nOfInputs(), dynSys.nOfOutputs()));
+      throw new IllegalArgumentException(
+          String.format(
+              "Requested 2 inputs and 2 outputs, found %d and %d",
+              dynSys.nOfInputs(),
+              dynSys.nOfOutputs()
+          )
+      );
     }
     AffineTransform previousTransform = setTransform(g, arena);
     // draw arena
-    g.setStroke(new BasicStroke(
-        (float) (configuration.segmentThickness / g.getTransform().getScaleX())));
+    g.setStroke(
+        new BasicStroke(
+            (float) (configuration.segmentThickness / g.getTransform().getScaleX())
+        )
+    );
     g.setColor(configuration.segmentColor);
     arena.segments().forEach(s -> g.draw(new Line2D.Double(s.p1().x(), s.p1().y(), s.p2().x(), s.p2().y())));
     int stepsOnX = (int) Math.floor(1d / configuration.step);
@@ -88,7 +93,7 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
     double max = 0d;
     for (int i = 0; i < stepsOnX; ++i) {
       for (int j = 0; j < stepsOnY; ++j) {
-        double[] input = new double[] {topLeftX + i * configuration.step, topLeftY + j * configuration.step};
+        double[] input = new double[]{topLeftX + i * configuration.step, topLeftY + j * configuration.step};
         if (configuration.rescale) {
           input[0] = 2 * input[0] - 1;
           input[1] = 2 * input[1] - 1;
@@ -103,7 +108,7 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
     }
     for (int i = 0; i < stepsOnX; ++i) {
       for (int j = 0; j < stepsOnY; ++j) {
-        double[] input = new double[] {topLeftX + i * configuration.step, topLeftY + j * configuration.step};
+        double[] input = new double[]{topLeftX + i * configuration.step, topLeftY + j * configuration.step};
         Point inputPoint = new Point(input[0], input[1]);
         // rescale input
         if (configuration.rescale) {
@@ -129,11 +134,14 @@ public class VectorFieldDrawer implements Drawer<NumericalTimeInvariantStateless
     // compute transformation
     double scale = Math.min(
         cW / (1 + 2 * configuration.marginRate) / arena.xExtent(),
-        cH / (1 + 2 * configuration.marginRate) / arena.yExtent());
+        cH / (1 + 2 * configuration.marginRate) / arena.yExtent()
+    );
     AffineTransform previousTransform = g.getTransform();
     AffineTransform transform = AffineTransform.getScaleInstance(scale, scale);
     transform.translate(
-        (cX / scale + cW / scale - arena.xExtent()) / 2d, (cY / scale + cH / scale - arena.yExtent()) / 2d);
+        (cX / scale + cW / scale - arena.xExtent()) / 2d,
+        (cY / scale + cH / scale - arena.yExtent()) / 2d
+    );
     g.setTransform(transform);
     return previousTransform;
   }

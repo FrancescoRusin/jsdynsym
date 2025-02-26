@@ -1,8 +1,8 @@
 /*-
  * ========================LICENSE_START=================================
- * jsdynsym-core
+ * jsdynsym-buildable
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,22 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+package io.github.ericmedvet.jsdynsym.buildable.builders;
 
-package io.github.ericmedvet.jsdynsym.core.rl;
+import io.github.ericmedvet.jnb.core.Cacheable;
+import io.github.ericmedvet.jnb.core.Discoverable;
+import io.github.ericmedvet.jnb.core.Param;
+import io.github.ericmedvet.jsdynsym.control.pong.PongAgent;
+import java.util.function.Supplier;
 
-public interface NumericalTimeInvariantReinforcementLearningAgent<S> extends NumericalReinforcementLearningAgent<S>, TimeInvariantReinforcementLearningAgent<double[], double[], S> {}
+@Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.opponent.pong")
+public class PongOpponents {
+  private PongOpponents() {
+  }
+
+  @SuppressWarnings("unused")
+  @Cacheable
+  public static Supplier<PongAgent> simple(@Param(value = "deltaPosition", dD = 1d) double deltaPosition) {
+    return () -> new PongAgent(deltaPosition);
+  }
+}

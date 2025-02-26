@@ -1,8 +1,8 @@
 /*-
  * ========================LICENSE_START=================================
- * jsdynsym-core
+ * jsdynsym-control
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,27 +17,37 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+package io.github.ericmedvet.jsdynsym.control.pong;
 
-package io.github.ericmedvet.jsdynsym.core.rl;
+import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 
-import io.github.ericmedvet.jsdynsym.core.TimeInvariantDynamicalSystem;
+public class PongAgent implements MultivariateRealFunction {
 
-public interface TimeInvariantReinforcementLearningAgent<I, O, S> extends ReinforcementLearningAgent<I, O, S>, TimeInvariantDynamicalSystem<ReinforcementLearningAgent.RewardedInput<I>, O, S> {
+  private final double normalizedDeltaY;
 
-  O step(I input, double reward);
+  public PongAgent() {
+    normalizedDeltaY = 0.5;
+  }
 
-  @Override
-  default O step(RewardedInput<I> rewardedInput) {
-    return step(rewardedInput.input(), rewardedInput.reward());
+  public PongAgent(double normalizedDeltaY) {
+    this.normalizedDeltaY = normalizedDeltaY;
   }
 
   @Override
-  default O step(double t, I input, double reward) {
-    return step(input, reward);
+  public double[] compute(double... input) { // racketY, ballX, ballY, ballVX, ballVY
+    double racketY = input[0];
+    double ballY = input[2];
+    double diff = ballY - racketY;
+    return new double[]{Math.signum(diff) * normalizedDeltaY};
   }
 
   @Override
-  default O step(double t, RewardedInput<I> rewardedInput) {
-    return step(rewardedInput);
+  public int nOfInputs() {
+    return 5;
+  }
+
+  @Override
+  public int nOfOutputs() {
+    return 1;
   }
 }

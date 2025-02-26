@@ -1,8 +1,8 @@
 /*-
  * ========================LICENSE_START=================================
- * jsdynsym-core
+ * jsdynsym-control
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,23 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+package io.github.ericmedvet.jsdynsym.control;
 
-package io.github.ericmedvet.jsdynsym.core.rl;
+import java.util.Optional;
 
-public interface NumericalTimeInvariantReinforcementLearningAgent<S> extends NumericalReinforcementLearningAgent<S>, TimeInvariantReinforcementLearningAgent<double[], double[], S> {}
+public interface HomogeneousBiSimulation<T, S, O extends Simulation.Outcome<S>> extends BiSimulation<T, T, S, O> {
+
+  default Optional<T> homogeneousExample() {
+    return Optional.empty();
+  }
+
+  @Override
+  default Optional<T> example1() {
+    return homogeneousExample();
+  }
+
+  @Override
+  default Optional<T> example2() {
+    return homogeneousExample();
+  }
+}

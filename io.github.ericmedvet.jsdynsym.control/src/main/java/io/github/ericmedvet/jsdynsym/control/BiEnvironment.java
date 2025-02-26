@@ -1,8 +1,8 @@
 /*-
  * ========================LICENSE_START=================================
- * jsdynsym-core
+ * jsdynsym-control
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,18 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+package io.github.ericmedvet.jsdynsym.control;
 
-package io.github.ericmedvet.jsdynsym.core.rl;
+import io.github.ericmedvet.jnb.datastructure.Pair;
+import io.github.ericmedvet.jsdynsym.core.DynamicalSystem;
 
-public interface NumericalTimeInvariantReinforcementLearningAgent<S> extends NumericalReinforcementLearningAgent<S>, TimeInvariantReinforcementLearningAgent<double[], double[], S> {}
+public interface BiEnvironment<O1, O2, A1, A2, S, C1 extends DynamicalSystem<O1, A1, ?>, C2 extends DynamicalSystem<O2, A2, ?>> extends DynamicalSystem<Pair<A1, A2>, Pair<O1, O2>, S> {
+
+  C1 exampleAgent1();
+
+  C2 exampleAgent2();
+
+  O1 defaultObservation1();
+
+  O2 defaultObservation2();
+}

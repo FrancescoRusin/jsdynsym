@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-control
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,31 @@
  */
 package io.github.ericmedvet.jsdynsym.control;
 
-/** @author "Eric Medvet" on 2024/07/24 for jsdynsym */
-public interface SimulationWithExample<T, S, O extends Simulation.Outcome<S>> extends Simulation<T, S, O> {
-  T example();
+import io.github.ericmedvet.jnb.datastructure.Pair;
+import java.util.Optional;
+
+public interface BiSimulation<T1, T2, S, O extends Simulation.Outcome<S>> extends Simulation<Pair<T1, T2>, S, O> {
+
+  O simulate(T1 t1, T2 t2);
+
+  @Override
+  default O simulate(Pair<T1, T2> tPair) {
+    return simulate(tPair.first(), tPair.second());
+  }
+
+  default Optional<T1> example1() {
+    return Optional.empty();
+  }
+
+  default Optional<T2> example2() {
+    return Optional.empty();
+  }
+
+  @Override
+  default Optional<Pair<T1, T2>> example() {
+    if (example1().isPresent() || example2().isPresent()) {
+      return Optional.of(new Pair<>(example1().orElse(null), example2().orElse(null)));
+    }
+    return Optional.empty();
+  }
 }
