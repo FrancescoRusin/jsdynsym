@@ -21,102 +21,138 @@
 package io.github.ericmedvet.jsdynsym.buildable.builders;
 
 import io.github.ericmedvet.jnb.core.NamedBuilder;
-import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jsdynsym.control.Simulation;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
-import io.github.ericmedvet.jsdynsym.control.navigation.*;
+import io.github.ericmedvet.jsdynsym.control.geometry.Point;
+import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment;
+import io.github.ericmedvet.jsdynsym.core.StatelessSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
-import io.github.ericmedvet.jviz.core.drawer.ImageBuilder;
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Random;
+
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 public class Main {
+  private static final String path = "C:\\Users\\Francesco\\Desktop\\Università\\Dottorato\\Ricerca\\Locality\\";
 
   public static void main(String[] args) throws IOException {
-    navigation();
-    // pointNavigation();
+    navSearch("base");
+  }
+
+  private static Object base64Deserializer(String serialized) {
+    byte[] bytes = Base64.getDecoder().decode(serialized);
+    try (ObjectInputStream oois = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
+      return oois.readObject();
+    } catch (IOException | ClassNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private record Individual(double[] genotype, double fitness, double c1, double c2) {
   }
 
   @SuppressWarnings("unchecked")
-  public static void pointNavVisual() {
+  public static void navSearch(String exp) throws IOException {
     NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    String genotype = "rO0ABXNyABNqYXZhLnV0aWwuQXJyYXlMaXN0eIHSHZnHYZ0DAAFJAARzaXpleHAAAAAWdwQAAAAWc3IAEGphdmEubGFuZy5Eb3VibGWAs8JKKWv7BAIAAUQABXZhbHVleHIAEGphdmEubGFuZy5OdW1iZXKGrJUdC5TgiwIAAHhwP+HfAxn4soBzcQB+AAI/5/cWGhuXynNxAH4AAr/VPpwJHdyAc3EAfgACv8jBAcrQY6BzcQB+AAK/5cwX9vm3MnNxAH4AAj/desmMrqzYc3EAfgACv8/9cWhZJnhzcQB+AAK/z1669BZtQHNxAH4AAj+/BbKVlmMwc3EAfgACv+biExNRExBzcQB+AAI/2NINXFEfoHNxAH4AAr/n8MgDN+0Mc3EAfgACP8gJ2fyu00hzcQB+AAK/7FiZq3ZpsHNxAH4AAr/sodjxwbdqc3EAfgACP8oN6i+X/JhzcQB+AAK/zzJxehFIqHNxAH4AAr/mXy4s9PQic3EAfgACP4xC3kyxYYBzcQB+AAI/4yais6r7EHNxAH4AAj/YYcjqIOGgc3EAfgACP+HNfeh3wOZ4";
-    Function<String, Object> decoder = (Function<String, Object>) nb.build("f.fromBase64()");
-    List<Double> actualGenotype = (List<Double>) decoder.apply(genotype);
-    PointNavigationEnvironment environment = (PointNavigationEnvironment) nb.build(
-        "ds.e.pointNavigation(arena = E_MAZE;initialRobotXRange = m.range(min = 0.5; max = 0.55);" + "initialRobotYRange = m.range(min = 0.75; max = 0.75);robotMaxV = 0.05)"
-    );
-    MultiLayerPerceptron mlp = ((NumericalDynamicalSystems.Builder<MultiLayerPerceptron, ?>) nb.build(
-        "ds.num.mlp(innerLayerRatio = 2.0)"
-    ))
-        .apply(environment.nOfOutputs(), environment.nOfInputs());
-    mlp.setParams(actualGenotype.stream().mapToDouble(d -> d).toArray());
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], PointNavigationEnvironment.State> task = SingleAgentTask
-        .fromEnvironment(
-            () -> environment,
-            s -> s.robotPosition().distance(s.targetPosition()) < .01,
-            new DoubleRange(0, 100),
-            0.1
-        );
-    Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>> outcome = task
-        .simulate(mlp);
-    PointNavigationDrawer d = new PointNavigationDrawer(
-        PointNavigationDrawer.Configuration.DEFAULT
-    );
-    d.show(new ImageBuilder.ImageInfo(500, 500), outcome);
-    Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>>, Double> fitness = (Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>>, Double>) nb
-        .build("ds.e.n.finalTimePlusD()");
-    System.out.println(fitness.apply(outcome));
-    /*VectorFieldDrawer vfd =
-    new VectorFieldDrawer(Arena.Prepared.E_MAZE.arena(), VectorFieldDrawer.Configuration.DEFAULT);
-    vfd.show(new ImageBuilder.ImageInfo(500, 500), mlp);*/
-  }
-
-  public static void pointNavigation() {
-    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    PointNavigationEnvironment environment = (PointNavigationEnvironment) nb.build(
-        "ds.e.pointNavigation(arena = E_MAZE)"
-    );
-    @SuppressWarnings("unchecked") MultiLayerPerceptron mlp = ((NumericalDynamicalSystems.Builder<MultiLayerPerceptron, ?>) nb
-        .build("ds.num.mlp()"))
-        .apply(environment.nOfOutputs(), environment.nOfInputs());
-    mlp.randomize(new Random(), DoubleRange.SYMMETRIC_UNIT);
-    VectorFieldDrawer vfd = new VectorFieldDrawer(
-        Arena.Prepared.E_MAZE.arena(),
-        VectorFieldDrawer.Configuration.DEFAULT
-    );
-    vfd.show(new ImageBuilder.ImageInfo(500, 500), mlp);
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], PointNavigationEnvironment.State> task = SingleAgentTask
-        .fromEnvironment(() -> environment, s -> false, new DoubleRange(0, 10), 0.1);
-    Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>> outcome = task
-        .simulate(mlp);
-    new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT)
-        .videoBuilder()
-        .save(new File("../point-navigation.mp4"), outcome);
-  }
-
-  public static void navigation() {
-    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    NavigationEnvironment environment = (NavigationEnvironment) nb.build(
-        "ds.e.navigation(arena = snake)"
-    );
-    @SuppressWarnings("unchecked") MultiLayerPerceptron mlp = ((NumericalDynamicalSystems.Builder<MultiLayerPerceptron, ?>) nb
-        .build("ds.num.mlp()"))
-        .apply(environment.nOfOutputs(), environment.nOfInputs());
-    mlp.randomize(new Random(), DoubleRange.SYMMETRIC_UNIT);
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
-        .fromEnvironment(() -> environment, s -> false, new DoubleRange(0, 30), 0.1);
-    Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> outcome = task.simulate(
-        mlp
-    );
-    NavigationDrawer d = new NavigationDrawer(NavigationDrawer.Configuration.DEFAULT);
-    @SuppressWarnings("unchecked") Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double> fitness = (Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
-        .build("ds.e.n.arenaCoverage()");
-    System.out.println(fitness.apply(outcome));
-    d.show(outcome);
+    Supplier<SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State>> taskSupplier =
+            () -> (SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State>)
+                    nb.build(
+                            "ds.sat.fromEnvironment(" +
+                                    "  environment = ds.e.navigation(" +
+                                    "    arena = BLOCKY_MAZE;" +
+                                    "    initialRobotXRange = m.range(min = 0.5; max = 0.5);" +
+                                    "    initialRobotYRange = m.range(min = 0.75; max = 0.75);" +
+                                    "    robotMaxV = 0.05;" +
+                                    "    nOfSensors = 4" +
+                                    "  );" +
+                                    "  tRange = m.range(min = 0.0; max = 30.0);" +
+                                    "  dT = 0.1" +
+                                    ")"
+                    );
+    final Supplier<MultiLayerPerceptron> mlpSupplier =
+            () -> ((NumericalDynamicalSystems.Builder<MultiLayerPerceptron, StatelessSystem.State>)
+                    nb.build("ds.num.mlp(innerLayerRatio = 1.0)")).apply(7, 2);
+    final Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Point> finalPos =
+            o -> o.snapshots().get(o.snapshots().lastKey()).state().robotPosition();
+    final BufferedReader reader = new BufferedReader(new FileReader("%s\\Csv\\%s-all.csv".formatted(path, exp)));
+    String line = reader.readLine();
+    List<String> splitLine = Arrays.stream(line.split(";")).toList();
+    final int seedIndex = splitLine.indexOf("run.randomGenerator.seed");
+    final int itIndex = splitLine.indexOf("state→n.iterations");
+    final int fitnessIndex = splitLine.indexOf("individual→quality→behavior.quality→avg.dist");
+    final int c1Index = splitLine.indexOf("individual→coords→[0]→bin");
+    final int v1Index = splitLine.indexOf("individual→coords→[0]→value");
+    final int genotypeIndex = splitLine.indexOf("individual→genotype→to.base64");
+    Individual[][][][] individuals = new Individual[10][10][20][20];
+    while (Objects.nonNull(line = reader.readLine())) {
+      String[] aLine = line.split(";");
+      individuals[-1 - Integer.parseInt(aLine[seedIndex])][Integer.parseInt(aLine[itIndex]) / 10 - 1]
+              [Integer.parseInt(aLine[c1Index])][Integer.parseInt(aLine[c1Index + 1])] =
+              new Individual(
+                      ((List<Double>) base64Deserializer(aLine[genotypeIndex])).stream().mapToDouble(d -> d).toArray(),
+                      Double.parseDouble(aLine[fitnessIndex]),
+                      Double.parseDouble(aLine[v1Index]),
+                      Double.parseDouble(aLine[v1Index + 1])
+              );
+    }
+    ExecutorService threader = Executors.newFixedThreadPool(10);
+    final BufferedWriter writer = new BufferedWriter(new FileWriter("%s\\Csv\\%s-paths.csv".formatted(path, exp)));
+    writer.write("seed;gen;p1.x;p1.y;p2.x;p2.y;path.og;path.ticks\n");
+    for (int i = 0; i < 10; ++i) {
+      for (int j = 0; j < 10; ++j) {
+        for (int x = 0; x < 20; ++x) {
+          for (int y = 0; y < 20; ++y) {
+            if (Objects.nonNull(individuals[i][j][x][y])) {
+              final Individual i1 = individuals[i][j][x][y];
+              for (int[] neighs : List.of(new int[]{1, 0}, new int[]{0, 1})) {
+                if (x + neighs[0] < 20 && y + neighs[1] < 20 && Objects.nonNull(individuals[i][j][x + neighs[0]][y + neighs[1]])) {
+                  final Individual i2 = individuals[i][j][x + neighs[0]][y + neighs[1]];
+                  final List<Callable<Point>> intermediates = new ArrayList<>();
+                  for (int k = 1; k < 11; ++k) {
+                    final double tick = k / 11d;
+                    intermediates.add(() -> {
+                      final double[] newGenotype = IntStream.range(0, i1.genotype.length)
+                              .mapToDouble(index -> i1.genotype[index] * (1d - tick) + i2.genotype[index] * tick)
+                              .toArray();
+                      MultiLayerPerceptron mlp = mlpSupplier.get();
+                      mlp.setParams(newGenotype);
+                      return finalPos.apply(taskSupplier.get().simulate(mlp));
+                    });
+                  }
+                  List<Point> results = new ArrayList<>();
+                  results.add(new Point(i1.c1, i1.c2));
+                  try {
+                    results.addAll(threader.invokeAll(intermediates).stream().map(f -> {
+                      try {
+                        return f.get();
+                      } catch (Exception e) {
+                        throw new RuntimeException(e);
+                      }
+                    }).toList());
+                  } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                  }
+                  results.add(new Point(i2.c1, i2.c2));
+                  final double ogDist = Math.sqrt(Math.pow(i1.c1 - i2.c1, 2) + Math.pow(i1.c2 - i2.c2, 2));
+                  final double tickDist = IntStream.range(0, results.size() - 1)
+                          .mapToDouble(index -> results.get(index).distance(results.get(index + 1)))
+                          .sum();
+                  //seed;gen;p1.x;p1.y;p2.x;p2.y;path.og;path.ticks
+                  writer.write("%d;%d;%d;%d;%d;%d;%f;%f\n".formatted(i, j, x, y, x + neighs[0], y + neighs[1], ogDist, tickDist));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    threader.shutdown();
+    writer.close();
   }
 }
