@@ -42,6 +42,7 @@ public class Main {
   private static final String path = "C:\\Users\\Francesco\\Desktop\\Università\\Dottorato\\Ricerca\\Locality\\";
 
   public static void main(String[] args) throws IOException {
+    Locale.setDefault(Locale.US);
     navSearch("base");
   }
 
