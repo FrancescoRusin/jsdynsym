@@ -47,10 +47,12 @@ public class Main {
 
   public static void main(String[] args) throws IOException {
     Locale.setDefault(Locale.US);
-    for (String controller : List.of("mlp", "poly")) {
+    for (String controller : List.of("poly")) {
       for (String arena : List.of("blocky", "maze", "empty")) {
-        pointSearch("%s-avgD".formatted(arena), controller);
-        //robotSearch("%s-avgD".formatted(arena), controller);
+        System.out.printf("Doing point %s %s\n", arena, controller);
+        pointSearch("%s-finalD-xy".formatted(arena), controller);
+        System.out.printf("Doing robot %s %s\n", arena, controller);
+        robotSearch("%s-finalD-xy".formatted(arena), controller);
       }
     }
   }
@@ -76,6 +78,16 @@ public class Main {
     }
     if (exp.contains("empty")) {
       return "EMPTY";
+    }
+    return "";
+  }
+
+  private static String getFitness(String exp) {
+    if (exp.contains("avgD")) {
+      return "avg.dist";
+    }
+    if (exp.contains("finalD")) {
+      return "final.dist";
     }
     return "";
   }
@@ -114,15 +126,13 @@ public class Main {
     };
     final Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>>, Point> finalPos =
             o -> o.snapshots().get(o.snapshots().lastKey()).state().robotPosition();
-    final Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>>, Double> avgD =
-            o -> o.snapshots().values().stream().mapToDouble(s -> s.state().robotPosition().distance(s.state().targetPosition())).average().orElseThrow();
     final BufferedReader reader = new BufferedReader(new FileReader("%s\\Csv\\point-%s-all.csv".formatted(path, exp)));
     String line = reader.readLine();
     List<String> splitLine = Arrays.stream(line.split(";")).toList();
     final int solverIndex = splitLine.indexOf("run.solver.name");
     final int seedIndex = splitLine.indexOf("run.randomGenerator.seed");
     final int itIndex = splitLine.indexOf("state→n.iterations");
-    final int fitnessIndex = splitLine.indexOf("individual→quality→behavior.quality→avg.dist");
+    final int fitnessIndex = splitLine.indexOf("individual→quality→behavior.quality→%s".formatted(getFitness(exp)));
     final int c1Index = splitLine.indexOf("individual→coords→[0]→bin");
     final int v1Index = splitLine.indexOf("individual→coords→[0]→value");
     final int genotypeIndex = splitLine.indexOf("individual→genotype→to.base64");
@@ -140,21 +150,16 @@ public class Main {
                 );
       }
     }
-    //ExecutorService threader = Executors.newFixedThreadPool(10);
-    //final BufferedWriter writer = new BufferedWriter(new FileWriter("%s\\Csv\\point-%s-%s-paths.csv".formatted(path, exp, contrString)));
-    //writer.write("seed;gen;p1.x;p1.y;p2.x;p2.y;path.og;path.ticks\n");
+    ExecutorService threader = Executors.newFixedThreadPool(10);
+    final BufferedWriter writer = new BufferedWriter(new FileWriter("%s\\Csv\\point-%s-%s-paths.csv".formatted(path, exp, contrString)));
+    writer.write("seed;gen;p1.x;p1.y;p2.x;p2.y;path.og;path.ticks\n");
     for (int i = 0; i < 10; ++i) {
       for (int j = 0; j < 10; ++j) {
         for (int x = 0; x < 20; ++x) {
           for (int y = 0; y < 20; ++y) {
             if (Objects.nonNull(individuals[i][j][x][y])) {
               final Individual i1 = individuals[i][j][x][y];
-              MultivariateRealFunction controller = Objects.requireNonNull(controllerSupplier).apply(i1.genotype);
-              double res = avgD.apply(taskSupplier.get().simulate(controller));
-              if (Math.abs(res - i1.fitness) > 1e-4) {
-                System.out.println("PORCA MADONNA");
-              }
-              /*for (int[] neighs : List.of(new int[]{1, 0}, new int[]{0, 1})) {
+              for (int[] neighs : List.of(new int[]{1, 0}, new int[]{0, 1})) {
                 if (x + neighs[0] < 20 && y + neighs[1] < 20 && Objects.nonNull(individuals[i][j][x + neighs[0]][y + neighs[1]])) {
                   final Individual i2 = individuals[i][j][x + neighs[0]][y + neighs[1]];
                   final List<Callable<Point>> intermediates = new ArrayList<>();
@@ -186,17 +191,17 @@ public class Main {
                   final double tickDist = IntStream.range(0, results.size() - 1)
                           .mapToDouble(index -> results.get(index).distance(results.get(index + 1)))
                           .sum();
-                  //seed;gen;p1.x;p1.y;p2.x;p2.y;path.og;path.ticks;mid.points
+                  //seed;gen;p1.x;p1.y;p2.x;p2.y;path.og;path.ticks
                   writer.write("%d;%d;%d;%d;%d;%d;%f;%f\n".formatted(i, j, x, y, x + neighs[0], y + neighs[1], ogDist, tickDist));
                 }
-              }*/
+              }
             }
           }
         }
       }
     }
-    //threader.shutdown();
-    //writer.close();
+    threader.shutdown();
+    writer.close();
   }
 
   @SuppressWarnings("unchecked")
@@ -240,7 +245,7 @@ public class Main {
     final int solverIndex = splitLine.indexOf("run.solver.name");
     final int seedIndex = splitLine.indexOf("run.randomGenerator.seed");
     final int itIndex = splitLine.indexOf("state→n.iterations");
-    final int fitnessIndex = splitLine.indexOf("individual→quality→behavior.quality→avg.dist");
+    final int fitnessIndex = splitLine.indexOf("individual→quality→behavior.quality→%s".formatted(getFitness(exp)));
     final int c1Index = splitLine.indexOf("individual→coords→[0]→bin");
     final int v1Index = splitLine.indexOf("individual→coords→[0]→value");
     final int genotypeIndex = splitLine.indexOf("individual→genotype→to.base64");
@@ -299,7 +304,7 @@ public class Main {
                   final double tickDist = IntStream.range(0, results.size() - 1)
                           .mapToDouble(index -> results.get(index).distance(results.get(index + 1)))
                           .sum();
-                  //controller;seed;gen;p1.x;p1.y;p2.x;p2.y;path.og;path.ticks;mid.points
+                  //controller;seed;gen;p1.x;p1.y;p2.x;p2.y;path.og;path.ticks
                   writer.write("%d;%d;%d;%d;%d;%d;%f;%f\n".formatted(i, j, x, y, x + neighs[0], y + neighs[1], ogDist, tickDist));
                 }
               }
