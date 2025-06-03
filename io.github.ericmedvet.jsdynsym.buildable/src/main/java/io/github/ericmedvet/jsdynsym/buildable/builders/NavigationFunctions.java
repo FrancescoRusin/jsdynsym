@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 @Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.environment|env|e.navigation|nav|n")
 public class NavigationFunctions {
@@ -270,11 +271,7 @@ public class NavigationFunctions {
       if (positions.size() < 2) {
         return 0d;
       }
-      double pathLength = 0d;
-      for (int i = 1; i < positions.size(); ++i) {
-        pathLength += positions.get(i).diff(positions.get(i - 1)).magnitude();
-      }
-      return pathLength;
+      return IntStream.range(1, positions.size()).mapToDouble(i -> positions.get(i).diff(positions.get(i - 1)).magnitude()).sum();
     };
     return FormattedNamedFunction.from(f, format, "path.length").compose(beforeF);
   }
