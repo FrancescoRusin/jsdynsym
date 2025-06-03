@@ -90,7 +90,7 @@ public class NavigationFunctions {
       }
       Point beforeV = positions.get(1).diff(positions.get(0));
       int index = 2;
-      while (index < positions.size() && beforeV.x() == 0d && beforeV.y() == 0d) {
+      while (index < positions.size() && beforeV.magnitude() == 0d) {
         beforeV = positions.get(index).diff(positions.get(index - 1));
         ++index;
       }
@@ -101,14 +101,15 @@ public class NavigationFunctions {
       List<Double> angles = new ArrayList<>();
       for (int i = index; i < positions.size(); ++i) {
         Point afterV = positions.get(i).diff(positions.get(i - 1));
-        if (afterV.x() == 0d && afterV.y() == 0d) {
+        final double avMag = afterV.magnitude();
+        if (avMag == 0d) {
           continue;
         }
-        afterV = afterV.scale(1 / afterV.magnitude());
-        angles.add(Math.acos(beforeV.x() * afterV.x() + beforeV.y() * afterV.y()));
+        afterV = afterV.scale(1 / avMag);
+        angles.add(Math.acos(DoubleRange.SYMMETRIC_UNIT.clip(beforeV.x() * afterV.x() + beforeV.y() * afterV.y())));
         beforeV = afterV;
       }
-      return angles.stream().mapToDouble(d -> d).average().orElse(0);
+      return angles.stream().mapToDouble(d -> d).average().orElse(0d);
     };
     return FormattedNamedFunction.from(f, format, "avg.angle").compose(beforeF);
   }
