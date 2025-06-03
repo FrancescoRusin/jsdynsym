@@ -32,7 +32,9 @@ import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.State;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -73,6 +75,42 @@ public class NavigationFunctions {
     };
     return FormattedNamedFunction.from(f, format, "area.coverage[%dx%d]".formatted(xBins, yBins))
         .compose(beforeF);
+  }
+
+  @SuppressWarnings("unused")
+  @Cacheable
+  public static <X> FormattedNamedFunction<X, Double> avgAngle(
+      @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
+      @Param(value = "format", dS = "%5.3f") String format
+  ) {
+    Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>, Double> f = o -> {
+      List<Point> positions = o.snapshots().values().stream().map(s -> s.state().robotPosition()).toList();
+      if (positions.size() < 3) {
+        return 0d;
+      }
+      Point beforeV = positions.get(1).diff(positions.get(0));
+      int index = 2;
+      while (index < positions.size() && beforeV.x() == 0d && beforeV.y() == 0d) {
+        beforeV = positions.get(index).diff(positions.get(index - 1));
+        ++index;
+      }
+      if (index == positions.size()) {
+        return 0d;
+      }
+      beforeV = beforeV.scale(1 / beforeV.magnitude());
+      List<Double> angles = new ArrayList<>();
+      for (int i = index; i < positions.size(); ++i) {
+        Point afterV = positions.get(i).diff(positions.get(i - 1));
+        if (afterV.x() == 0d && afterV.y() == 0d) {
+          continue;
+        }
+        afterV = afterV.scale(1 / afterV.magnitude());
+        angles.add(Math.acos(beforeV.x() * afterV.x() + beforeV.y() * afterV.y()));
+        beforeV = afterV;
+      }
+      return angles.stream().mapToDouble(d -> d).average().orElse(0);
+    };
+    return FormattedNamedFunction.from(f, format, "avg.angle").compose(beforeF);
   }
 
   @SuppressWarnings("unused")
@@ -218,6 +256,26 @@ public class NavigationFunctions {
         .min()
         .orElseThrow();
     return FormattedNamedFunction.from(f, format, "min.dist").compose(beforeF);
+  }
+
+  @SuppressWarnings("unused")
+  @Cacheable
+  public static <X> FormattedNamedFunction<X, Double> pathLength(
+      @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
+      @Param(value = "format", dS = "%5.3f") String format
+  ) {
+    Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>, Double> f = o -> {
+      List<Point> positions = o.snapshots().values().stream().map(s -> s.state().robotPosition()).toList();
+      if (positions.size() < 2) {
+        return 0d;
+      }
+      double pathLength = 0d;
+      for (int i = 1; i < positions.size(); ++i) {
+        pathLength += positions.get(i).diff(positions.get(i - 1)).magnitude();
+      }
+      return pathLength;
+    };
+    return FormattedNamedFunction.from(f, format, "path.length").compose(beforeF);
   }
 
   @SuppressWarnings("unused")
