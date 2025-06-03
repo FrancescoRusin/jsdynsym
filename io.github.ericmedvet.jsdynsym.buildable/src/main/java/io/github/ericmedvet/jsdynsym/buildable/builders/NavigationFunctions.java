@@ -271,7 +271,9 @@ public class NavigationFunctions {
       if (positions.size() < 2) {
         return 0d;
       }
-      return IntStream.range(1, positions.size()).mapToDouble(i -> positions.get(i).diff(positions.get(i - 1)).magnitude()).sum();
+      return IntStream.range(1, positions.size())
+          .mapToDouble(i -> positions.get(i).diff(positions.get(i - 1)).magnitude())
+          .sum();
     };
     return FormattedNamedFunction.from(f, format, "path.length").compose(beforeF);
   }
