@@ -24,7 +24,6 @@ import io.github.ericmedvet.jnb.datastructure.NumericalParametrized;
 import io.github.ericmedvet.jsdynsym.core.numerical.FrozenableNumericalDynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalStatelessSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalTimeInvariantDynamicalSystem;
-
 import java.util.Arrays;
 import java.util.random.RandomGenerator;
 import java.util.stream.Collectors;

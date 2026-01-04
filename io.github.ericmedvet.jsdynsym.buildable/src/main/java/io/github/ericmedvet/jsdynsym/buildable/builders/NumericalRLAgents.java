@@ -29,7 +29,6 @@ import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.numerical.named.NamedUnivariateRealFunction;
 import io.github.ericmedvet.jsdynsym.core.rl.FreeFormPlasticMLPRLAgent;
 import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent;
-
 import java.util.List;
 import java.util.function.Function;
 import java.util.random.RandomGenerator;

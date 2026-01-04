@@ -30,9 +30,12 @@ import io.github.ericmedvet.jnb.datastructure.Pair;
 import io.github.ericmedvet.jsdynsym.control.Simulation;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
+import io.github.ericmedvet.jsdynsym.control.geometry.Semiline;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
+import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment;
 import io.github.ericmedvet.jsdynsym.control.navigation.State;
 import java.util.Comparator;
+import java.util.Optional;
 import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -43,7 +46,6 @@ public class NavigationFunctions {
   private NavigationFunctions() {
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> arenaCoverage(
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
@@ -75,7 +77,6 @@ public class NavigationFunctions {
         .compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> avgD(
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
@@ -90,7 +91,37 @@ public class NavigationFunctions {
     return FormattedNamedFunction.from(f, format, "avg.dist").compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
+  @Cacheable
+  public static <X> FormattedNamedFunction<X, Double> avgGapToObstacle(
+      @Param(value = "name", iS = "avg.gap[d={direction:%.1f}]") String name,
+      @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>> beforeF,
+      @Param(value = "direction", dD = -90d) double direction,
+      @Param(value = "format", dS = "%5.3f") String format
+  ) {
+    Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double> f = outcome -> outcome
+        .snapshots()
+        .values()
+        .stream()
+        .mapToDouble(s -> {
+          Point robotP = s.state().robotPosition();
+          double robotA = s.state().robotDirection();
+          Semiline sl = new Semiline(robotP, robotA);
+          return s.state()
+              .configuration()
+              .arena()
+              .segments()
+              .stream()
+              .map(sl::interception)
+              .filter(Optional::isPresent)
+              .mapToDouble(op -> op.orElseThrow().distance(robotP))
+              .min()
+              .orElse(Double.POSITIVE_INFINITY);
+        })
+        .average()
+        .orElse(0d);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
+  }
+
   @Cacheable
   public static <X> NamedFunction<X, Point> closestRobotP(
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
@@ -125,7 +156,6 @@ public class NavigationFunctions {
     return NamedFunction.from(f, "closest.pos").compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> distanceFromTarget(
       @Param(value = "of", dNPM = "f.identity()") Function<X, State> beforeF,
@@ -135,7 +165,6 @@ public class NavigationFunctions {
     return FormattedNamedFunction.from(f, format, "dist").compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> finalD(
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
@@ -149,7 +178,6 @@ public class NavigationFunctions {
     return FormattedNamedFunction.from(f, format, "final.dist").compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> NamedFunction<X, Point> finalRobotP(
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
@@ -175,7 +203,6 @@ public class NavigationFunctions {
     return NamedFunction.from(f, "final.pos").compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> finalTime(
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
@@ -186,7 +213,7 @@ public class NavigationFunctions {
     return FormattedNamedFunction.from(f, format, "final.time").compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
+
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> finalTimePlusD(
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
@@ -206,7 +233,6 @@ public class NavigationFunctions {
     return FormattedNamedFunction.from(f, format, "final.td").compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> minD(
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
@@ -221,7 +247,6 @@ public class NavigationFunctions {
     return FormattedNamedFunction.from(f, format, "min.dist").compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> x(
       @Param(value = "of", dNPM = "f.identity()") Function<X, Point> beforeF,
@@ -231,7 +256,6 @@ public class NavigationFunctions {
     return FormattedNamedFunction.from(f, format, "x").compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> y(
       @Param(value = "of", dNPM = "f.identity()") Function<X, Point> beforeF,

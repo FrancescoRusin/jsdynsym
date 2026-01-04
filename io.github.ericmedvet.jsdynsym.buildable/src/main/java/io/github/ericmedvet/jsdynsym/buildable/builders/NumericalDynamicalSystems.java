@@ -31,7 +31,6 @@ import io.github.ericmedvet.jsdynsym.core.numerical.*;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.DelayedRecurrentNetwork;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.HebbianMultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
-
 import java.util.List;
 import java.util.function.Function;
 import java.util.random.RandomGenerator;
