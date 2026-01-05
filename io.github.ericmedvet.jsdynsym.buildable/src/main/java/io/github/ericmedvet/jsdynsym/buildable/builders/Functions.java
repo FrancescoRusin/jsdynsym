@@ -25,7 +25,6 @@ import io.github.ericmedvet.jnb.core.Discoverable;
 import io.github.ericmedvet.jnb.core.Param;
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jnb.datastructure.FormattedNamedFunction;
-import io.github.ericmedvet.jnb.datastructure.NamedFunction;
 import io.github.ericmedvet.jsdynsym.control.HomogeneousBiSimulation;
 import io.github.ericmedvet.jsdynsym.control.Simulation;
 import io.github.ericmedvet.jsdynsym.control.Simulation.Outcome;
@@ -51,9 +50,9 @@ public class Functions {
   private Functions() {
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> cumulatedReward(
+      @Param(value = "name", iS = "cumulated.reward") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Outcome<SingleAgentTask.Step<RewardedInput<?>, ?, ?>>> beforeF,
       @Param(value = "format", dS = "%+6.3f") String format
   ) {
@@ -62,22 +61,21 @@ public class Functions {
         .stream()
         .mapToDouble(step -> step.observation().reward())
         .sum();
-    return FormattedNamedFunction.from(f, format, "cumulated.reward").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> doubleOp(
+      @Param(value = "name", iS = "{activationF}") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Double> beforeF,
       @Param(value = "activationF", dS = "identity") MultiLayerPerceptron.ActivationFunction activationF,
       @Param(value = "format", dS = "%.1f") String format
   ) {
     Function<Double, Double> f = activationF::applyAsDouble;
-    return FormattedNamedFunction.from(f, format, activationF.name().toLowerCase())
+    return FormattedNamedFunction.from(f, format, name)
         .compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X, I, O> FormattedNamedFunction<X, DynamicalSystem<I, O, ?>> nonLearning(
       @Param(value = "name", dS = "non.learning") String name,
@@ -88,9 +86,9 @@ public class Functions {
     return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static <X, S, B extends Simulation.Outcome<SS>, SS> NamedFunction<X, Simulation.Outcome<SS>> opponentBiSimulator(
+  public static <X, S, B extends Simulation.Outcome<SS>, SS> FormattedNamedFunction<X, Simulation.Outcome<SS>> opponentBiSimulator(
+      @Param(value = "name", iS = "opponent.sim") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, S> beforeF,
       @Param("simulation") HomogeneousBiSimulation<S, SS, B> biSimulation,
       @Param("opponent") S opponent,
@@ -106,12 +104,12 @@ public class Functions {
         tRange
     ) : biSimulation
         .simulate(opponent, s, dT, tRange);
-    return NamedFunction.from(f, "opponent.sim").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static <X, S, B extends Simulation.Outcome<SS>, SS> NamedFunction<X, Simulation.Outcome<SS>> selfBiSimulator(
+  public static <X, S, B extends Simulation.Outcome<SS>, SS> FormattedNamedFunction<X, Simulation.Outcome<SS>> selfBiSimulator(
+      @Param(value = "name", iS = "self.sim") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, S> beforeF,
       @Param("simulation") HomogeneousBiSimulation<S, SS, B> biSimulation,
       @Param("tRange") DoubleRange tRange,
@@ -119,22 +117,22 @@ public class Functions {
       @Param(value = "format", dS = "%s") String format
   ) {
     Function<S, Simulation.Outcome<SS>> f = s -> biSimulation.simulate(s, s, dT, tRange);
-    return NamedFunction.from(f, "self.sim").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static <X, S> NamedFunction<X, SortedMap<Double, S>> simOutcome(
+  public static <X, S> FormattedNamedFunction<X, SortedMap<Double, S>> simOutcome(
+      @Param(value = "name", iS = "sim.outcome") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<S>> beforeF,
       @Param(value = "format", dS = "%s") String format
   ) {
     Function<Simulation.Outcome<S>, SortedMap<Double, S>> f = Simulation.Outcome::snapshots;
-    return NamedFunction.from(f, "sim.outcome").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X, SS, O extends Simulation.Outcome<SS>, S extends Simulation<T, SS, O>, T> Function<X, O> simulate(
+      @Param(value = "name", iS = "sim[{simulation.name}]") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, T> beforeF,
       @Param("simulation") S simulation,
       @Param("tRange") DoubleRange tRange,
@@ -142,10 +140,9 @@ public class Functions {
       @Param(value = "format", dS = "%s") String format
   ) {
     Function<T, O> f = t -> simulation.simulate(t, dT, tRange);
-    return FormattedNamedFunction.from(f, format, "sim[%s]".formatted(simulation)).compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X, I, O> FormattedNamedFunction<X, StatelessSystem<I, O>> stateless(
       @Param(value = "name", dS = "stateless") String name,
@@ -156,11 +153,11 @@ public class Functions {
     return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static <X, O, A, S> NamedFunction<X, Outcome<SingleAgentTask.Step<O, A, S>>> unwrappedRl(
+  public static <X, O, A, S> FormattedNamedFunction<X, Outcome<SingleAgentTask.Step<O, A, S>>> unwrappedRl(
+      @Param(value = "name", dS = "unwrapped.rl") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Outcome<SingleAgentTask.Step<RewardedInput<O>, A, S>>> beforeF,
-      @Param(value = "name", dS = "unwrapped.rl") String name
+      @Param(value = "format", dS = "%s") String format
   ) {
     Function<Outcome<SingleAgentTask.Step<RewardedInput<O>, A, S>>, Outcome<SingleAgentTask.Step<O, A, S>>> f = rlO -> Outcome
         .of(
@@ -180,12 +177,12 @@ public class Functions {
                     )
                 )
         );
-    return NamedFunction.from(f, name).compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, List<List<List<Double>>>> weights(
+      @Param(value = "name", iS = "weights") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, MultiLayerPerceptron> beforeF,
       @Param(value = "format", dS = "%s") String format
   ) {
@@ -207,7 +204,7 @@ public class Functions {
           )
           .toList();
     };
-    return FormattedNamedFunction.from(f, format, "weights").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
 }

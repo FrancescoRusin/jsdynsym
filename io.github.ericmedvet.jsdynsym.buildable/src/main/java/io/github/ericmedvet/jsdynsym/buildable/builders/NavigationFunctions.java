@@ -48,12 +48,16 @@ public class NavigationFunctions {
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> arenaCoverage(
+      @Param(value = "name", iS = "arena.coverage[{xBins}x{yBins}]") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
       @Param(value = "xBins", dI = 10) int xBins,
       @Param(value = "yBins", dI = 10) int yBins,
       @Param(value = "format", dS = "%5.3f") String format
   ) {
-    BiFunction<Double, Integer, Integer> quantizer = (v, n) -> Math.min((int) Math.round(v * (double) n), n - 1);
+    BiFunction<Double, Integer, Integer> quantizer = (v, n) -> Math.min(
+        (int) Math.round(v * (double) n),
+        n - 1
+    );
     Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>, Double> f = o -> {
       Arena arena = o.snapshots()
           .get(o.snapshots().firstKey())
@@ -73,12 +77,13 @@ public class NavigationFunctions {
           .count();
       return (double) nOfVisitedCells / (double) (xBins * yBins);
     };
-    return FormattedNamedFunction.from(f, format, "arena.coverage[%dx%d]".formatted(xBins, yBins))
+    return FormattedNamedFunction.from(f, format, name)
         .compose(beforeF);
   }
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> avgD(
+      @Param(value = "name", iS = "avg.dist") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
       @Param(value = "format", dS = "%5.3f") String format
   ) {
@@ -88,14 +93,14 @@ public class NavigationFunctions {
         .mapToDouble(s -> s.state().robotPosition().distance(s.state().targetPosition()))
         .average()
         .orElseThrow();
-    return FormattedNamedFunction.from(f, format, "avg.dist").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> avgGapToObstacle(
-      @Param(value = "name", iS = "avg.gap[d={direction:%.1f}]") String name,
+      @Param(value = "name", iS = "avg.gap[d={direction:%.2f}]") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>> beforeF,
-      @Param(value = "direction", dD = -90d) double direction,
+      @Param(value = "direction", dD = -Math.PI / 2d) double direction,
       @Param(value = "format", dS = "%5.3f") String format
   ) {
     Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double> f = outcome -> outcome
@@ -124,6 +129,7 @@ public class NavigationFunctions {
 
   @Cacheable
   public static <X> NamedFunction<X, Point> closestRobotP(
+      @Param(value = "name", iS = "closest.pos") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
       @Param(value = "normalized", dB = true) boolean normalized
   ) {
@@ -153,20 +159,22 @@ public class NavigationFunctions {
       }
       return p;
     };
-    return NamedFunction.from(f, "closest.pos").compose(beforeF);
+    return NamedFunction.from(f, name).compose(beforeF);
   }
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> distanceFromTarget(
+      @Param(value = "name", iS = "dist") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, State> beforeF,
       @Param(value = "format", dS = "%5.3f") String format
   ) {
     Function<State, Double> f = s -> s.robotPosition().distance(s.targetPosition());
-    return FormattedNamedFunction.from(f, format, "dist").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> finalD(
+      @Param(value = "name", iS = "final.dist") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
       @Param(value = "format", dS = "%5.3f") String format
   ) {
@@ -175,11 +183,12 @@ public class NavigationFunctions {
         .state()
         .robotPosition()
         .distance(o.snapshots().get(o.snapshots().lastKey()).state().targetPosition());
-    return FormattedNamedFunction.from(f, format, "final.dist").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
   @Cacheable
   public static <X> NamedFunction<X, Point> finalRobotP(
+      @Param(value = "name", iS = "final.pos") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
       @Param(value = "normalized", dB = true) boolean normalized
   ) {
@@ -200,22 +209,24 @@ public class NavigationFunctions {
       }
       return p;
     };
-    return NamedFunction.from(f, "final.pos").compose(beforeF);
+    return NamedFunction.from(f, name).compose(beforeF);
   }
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> finalTime(
+      @Param(value = "name", iS = "final.time") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
       @Param(value = "format", dS = "%5.3f") String format
   ) {
     Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>, Double> f = o -> o.snapshots()
         .lastKey();
-    return FormattedNamedFunction.from(f, format, "final.time").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> finalTimePlusD(
+      @Param(value = "name", iS = "final.td") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
       @Param(value = "epsilon", dD = .01) double epsilon,
       @Param(value = "format", dS = "%5.3f") String format
@@ -230,11 +241,12 @@ public class NavigationFunctions {
           .distance(snapshots.get(stopTime).state().targetPosition());
       return stopTime + (lastDistance < epsilon ? 0d : lastDistance);
     };
-    return FormattedNamedFunction.from(f, format, "final.td").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> minD(
+      @Param(value = "name", iS = "min.dist") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
       @Param(value = "format", dS = "%5.3f") String format
   ) {
@@ -244,24 +256,26 @@ public class NavigationFunctions {
         .mapToDouble(s -> s.state().robotPosition().distance(s.state().targetPosition()))
         .min()
         .orElseThrow();
-    return FormattedNamedFunction.from(f, format, "min.dist").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> x(
+      @Param(value = "name", iS = "x") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Point> beforeF,
       @Param(value = "format", dS = "%5.3f") String format
   ) {
     Function<Point, Double> f = Point::x;
-    return FormattedNamedFunction.from(f, format, "x").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> y(
+      @Param(value = "name", iS = "y") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Point> beforeF,
       @Param(value = "format", dS = "%5.3f") String format
   ) {
     Function<Point, Double> f = Point::y;
-    return FormattedNamedFunction.from(f, format, "y").compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 }
