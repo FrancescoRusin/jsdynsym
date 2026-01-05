@@ -33,12 +33,16 @@ import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.geometry.Semiline;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment;
+import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment.State.SymbolicAction;
 import io.github.ericmedvet.jsdynsym.control.navigation.State;
 import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.environment|env|e.navigation|nav|n")
 public class NavigationFunctions {
@@ -256,6 +260,57 @@ public class NavigationFunctions {
         .mapToDouble(s -> s.state().robotPosition().distance(s.state().targetPosition()))
         .min()
         .orElseThrow();
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
+  }
+
+  @Cacheable
+  public static <X> FormattedNamedFunction<X, String> symbolicTrajectory(
+      @Param(value = "name", iS = "symbolic.trajectory[{collapse}]") String name,
+      @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>> beforeF,
+      @Param(value = "movTRate", dD = 0.1) double movTRate,
+      @Param(value = "turnT", dD = 0.25) double turnT,
+      @Param(value = "forwardSymbol", dS = "↑") String forwardSymbol,
+      @Param(value = "backwardSymbol", dS = "↓") String backwardSymbol,
+      @Param(value = "forwardLeftSymbol", dS = "↖") String forwardLeftSymbol,
+      @Param(value = "forwardRightSymbol", dS = "↗") String forwardRightSymbol,
+      @Param(value = "backwardLeftSymbol", dS = "↙") String backwardLeftSymbol,
+      @Param(value = "backwardRightSymbol", dS = "↘") String backwardRightSymbol,
+      @Param(value = "rotateLeftSymbol", dS = "↶") String rotateLeftSymbol,
+      @Param(value = "rotateRightSymbol", dS = "↷") String rotateRightSymbol,
+      @Param(value = "stopSymbol", dS = "o") String stopSymbol,
+      @Param("collapse") boolean collapse,
+      @Param(value = "format", dS = "%s") String format
+  ) {
+    Map<SymbolicAction, String> symbols = new EnumMap<>(SymbolicAction.class);
+    symbols.put(SymbolicAction.FORWARD, forwardSymbol);
+    symbols.put(SymbolicAction.FORWARD_LEFT, forwardLeftSymbol);
+    symbols.put(SymbolicAction.FORWARD_RIGHT, forwardRightSymbol);
+    symbols.put(SymbolicAction.BACKWARD, backwardSymbol);
+    symbols.put(SymbolicAction.BACKWARD_LEFT, backwardLeftSymbol);
+    symbols.put(SymbolicAction.BACKWARD_RIGHT, backwardRightSymbol);
+    symbols.put(SymbolicAction.STOP, stopSymbol);
+    symbols.put(SymbolicAction.ROTATE_LEFT, rotateLeftSymbol);
+    symbols.put(SymbolicAction.ROTATE_RIGHT, rotateRightSymbol);
+    Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, String> f = o -> o
+        .snapshots()
+        .values()
+        .stream()
+        .map(s -> symbols.getOrDefault(s.state().symbolicAction(movTRate, turnT), stopSymbol))
+        .collect(Collectors.joining());
+    Function<String, String> collapseF = s -> {
+      StringBuilder sb = new StringBuilder();
+      sb.append(s.charAt(0));
+      for (int i = 1; i < s.length(); i = i + 1) {
+        char c = s.charAt(i);
+        if (c != sb.charAt(sb.length() - 1)) {
+          sb.append(c);
+        }
+      }
+      return sb.toString();
+    };
+    if (collapse) {
+      f = f.andThen(collapseF);
+    }
     return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 

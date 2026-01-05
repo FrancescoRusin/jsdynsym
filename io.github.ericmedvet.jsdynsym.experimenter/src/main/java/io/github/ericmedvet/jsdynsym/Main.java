@@ -22,17 +22,22 @@ package io.github.ericmedvet.jsdynsym;
 
 import io.github.ericmedvet.jnb.core.NamedBuilder;
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
+import io.github.ericmedvet.jnb.datastructure.FormattedNamedFunction;
 import io.github.ericmedvet.jsdynsym.control.Environment;
 import io.github.ericmedvet.jsdynsym.control.Simulation;
+import io.github.ericmedvet.jsdynsym.control.Simulation.Outcome;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
+import io.github.ericmedvet.jsdynsym.control.SingleAgentTask.Step;
 import io.github.ericmedvet.jsdynsym.control.SingleRLAgentTask;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment;
+import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment.State;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment;
 import io.github.ericmedvet.jsdynsym.control.navigation.VectorFieldDrawer;
 import io.github.ericmedvet.jsdynsym.core.numerical.LinearCombination;
+import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.HebbianMultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
@@ -55,7 +60,8 @@ public class Main {
     // pointNavigation();
     // hebbianNavigation();
     // testHebbian();
-    freeFormNavigation();
+    // freeFormNavigation();
+    manualNavigation();
   }
 
   public static void freeFormNavigation() {
@@ -222,13 +228,17 @@ public class Main {
         .fromEnvironment(() -> environment, s -> false, true);
     Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> outcome = task.simulate(
         agent,
-        1,
+        0.1,
         new DoubleRange(0, 30)
     );
     NavigationDrawer d = new NavigationDrawer(NavigationDrawer.Configuration.DEFAULT);
-    @SuppressWarnings("unchecked") Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double> fitness = (Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], State>>, Double> fitness = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
         .build("ds.e.n.arenaCoverage()");
-    System.out.println(fitness.apply(outcome));
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, String> sTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, String>) nb
+        .build("ds.e.n.symbolicTrajectory()");
+    System.out.println(fitness + " = " + fitness.applyFormatted(outcome));
+    System.out.println(sTraj + " = " + sTraj.applyFormatted(outcome));
+    d.show(outcome);
     Function<Double, Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>> tResF = dT -> SingleAgentTask
         .fromEnvironment(
             () -> environment,
@@ -240,6 +250,48 @@ public class Main {
         .show(
             DoubleStream.iterate(0.05, v -> v <= 0.25, v -> v + 0.10).boxed().map(tResF).toList()
         );
+  }
+
+  public static void manualNavigation() {
+    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
+    @SuppressWarnings("unchecked") Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>> environment = (Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>>) nb
+        .build(
+            """
+                ds.e.navigation(
+                  arena = ds.arena.prepared(
+                    name = u_barrier;
+                    initialRobotXRange = m.range(min=0.5;max=0.5);
+                    initialRobotYRange = m.range(min=0.8;max=0.8)
+                  );
+                  robotRadius = 0.05
+                )
+                """
+        );
+    MultivariateRealFunction agent = MultivariateRealFunction.from(inputs -> {
+      if (inputs[inputs.length / 2] < 0.5) {
+        return new double[]{-1, 1};
+      }
+      return new double[]{1, 0.9};
+    }, environment.exampleAgent().nOfInputs(), 2);
+    NavigationDrawer d = new NavigationDrawer(NavigationDrawer.Configuration.DEFAULT);
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, String> sTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, String>) nb
+        .build("ds.e.n.symbolicTrajectory()");
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, Double> gap = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
+        .build("ds.e.n.avgGapToObstacle()");
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, Double> collapsedSTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
+        .build("ds.e.n.symbolicTrajectory(collapse = true)");
+    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
+        .fromEnvironment(() -> environment, s -> false, true);
+    Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> outcome = task.simulate(
+        agent,
+        0.1,
+        new DoubleRange(0, 30)
+    );
+    d.show(outcome);
+    System.out.println(sTraj + " = " + sTraj.applyFormatted(outcome));
+    System.out.println(gap + " = " + gap.applyFormatted(outcome));
+    System.out.println(collapsedSTraj + " = " + collapsedSTraj.applyFormatted(outcome));
+    d.videoBuilder().save(new File("../nav.mp4"), outcome);
   }
 
   @SuppressWarnings("unchecked")

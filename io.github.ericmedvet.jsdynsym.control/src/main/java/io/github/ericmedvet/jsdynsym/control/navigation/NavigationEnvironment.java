@@ -51,14 +51,74 @@ public class NavigationEnvironment implements NumericalDynamicalSystem<State>, E
 
   public record State(
       double t,
+      double previousT,
       Configuration configuration,
       Point targetPosition,
       Point robotPosition,
       Point robotPreviousPosition,
       double robotDirection,
+      double robotPreviousDirection,
       boolean hasCollided
   ) implements io.github.ericmedvet.jsdynsym.control.navigation.State {
 
+    public enum SymbolicAction {
+      STOP("o"), ROTATE_LEFT("↶"), ROTATE_RIGHT("↷"), FORWARD("↑"), FORWARD_LEFT("↖"), FORWARD_RIGHT("↗"), BACKWARD(
+          "↓"
+      ), BACKWARD_LEFT("↙"), BACKWARD_RIGHT("↘");
+
+      private final String s;
+
+      SymbolicAction(String s) {
+        this.s = s;
+      }
+
+      @Override
+      public String toString() {
+        return s;
+      }
+    }
+
+    public SymbolicAction symbolicAction(double movementThresholdRate, double turnThreshold) {
+      if (previousT == t) {
+        return SymbolicAction.STOP;
+      }
+      double maxV = configuration.robotMaxV() * (configuration.relativeSpeed() ? (t - previousT) : 1d);
+      double vT = maxV * movementThresholdRate;
+      Point dP = robotPosition.diff(robotPreviousPosition);
+      double sign = Math.min(
+          dP.direction() - robotDirection,
+          2d * Math.PI - dP.direction() - robotDirection
+      ) < Math.PI / 2d ? 1d : -1d;
+      double dV = dP.magnitude() * sign;
+      double dA = (robotDirection - robotPreviousDirection - 2d * Math.PI) % Math.PI;
+      dA = dA > Math.PI ? (dA - 2d * Math.PI) : dA;
+      double turnR = Math.abs(dV / Math.sin(dA));
+      if (dV > vT) {
+        if (turnR < turnThreshold && dA < 0) {
+          return SymbolicAction.FORWARD_RIGHT;
+        }
+        if (turnR < turnThreshold && dA > 0) {
+          return SymbolicAction.FORWARD_LEFT;
+        }
+        return SymbolicAction.FORWARD;
+      }
+      if (dV < -vT) {
+        if (turnR < turnThreshold && dA < 0) {
+          return SymbolicAction.BACKWARD_LEFT;
+        }
+        if (turnR < turnThreshold && dA > 0) {
+          return SymbolicAction.BACKWARD_RIGHT;
+        }
+        return SymbolicAction.BACKWARD;
+      }
+      if (turnR < turnThreshold && dA < 0) {
+        return SymbolicAction.ROTATE_RIGHT;
+      }
+      if (turnR < turnThreshold && dA > 0) {
+        return SymbolicAction.ROTATE_RIGHT;
+      }
+      return SymbolicAction.STOP;
+    }
   }
 
   private final Configuration configuration;
@@ -86,13 +146,17 @@ public class NavigationEnvironment implements NumericalDynamicalSystem<State>, E
 
   @Override
   public void reset() {
-    Point robotPosition = new Point(
+    Point inititalRobotPosition = new Point(
         configuration.arena.startXRange()
             .denormalize(configuration.randomGenerator.nextDouble()),
         configuration.arena.startYRange()
             .denormalize(configuration.randomGenerator.nextDouble())
     );
+    double initialRobotDirection = configuration.initialRobotDirectionRange.denormalize(
+        configuration.randomGenerator.nextDouble()
+    );
     state = new State(
+        0d,
         0d,
         configuration,
         new Point(
@@ -101,11 +165,10 @@ public class NavigationEnvironment implements NumericalDynamicalSystem<State>, E
             configuration.arena.targetYRange()
                 .denormalize(configuration.randomGenerator.nextDouble())
         ),
-        robotPosition,
-        robotPosition,
-        configuration.initialRobotDirectionRange.denormalize(
-            configuration.randomGenerator.nextDouble()
-        ),
+        inititalRobotPosition,
+        inititalRobotPosition,
+        initialRobotDirection,
+        initialRobotDirection,
         false
     );
   }
@@ -151,11 +214,13 @@ public class NavigationEnvironment implements NumericalDynamicalSystem<State>, E
     }
     state = new State(
         t,
+        state.t,
         configuration,
         state.targetPosition,
         collision ? state.robotPosition : newRobotP,
         state.robotPosition,
         state.robotDirection + deltaA,
+        state.robotDirection,
         collision
     );
     // compute observation

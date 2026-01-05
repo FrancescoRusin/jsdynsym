@@ -55,6 +55,9 @@ public class Drawers {
             NavigationDrawer.Configuration.DEFAULT.sensorsFillAlpha(),
             ioType,
             showSensors,
+            NavigationDrawer.Configuration.DEFAULT.showSymbolicAction(),
+            NavigationDrawer.Configuration.DEFAULT.symbolicActionMovementThresholdRate(),
+            NavigationDrawer.Configuration.DEFAULT.symbolicActionTurnThreshold(),
             NavigationDrawer.Configuration.DEFAULT.arenaConfiguration()
         )
     );

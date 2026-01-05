@@ -57,6 +57,9 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
       double sensorsFillAlpha,
       IOType ioType,
       boolean drawSensors,
+      boolean showSymbolicAction,
+      double symbolicActionMovementThresholdRate,
+      double symbolicActionTurnThreshold,
       ArenaDrawer.Configuration arenaConfiguration
   ) {
 
@@ -77,6 +80,9 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
         0.5,
         IOType.GRAPHIC,
         true,
+        true,
+        0.1,
+        Math.PI / 20,
         ArenaDrawer.Configuration.DEFAULT
     );
   }
@@ -247,7 +253,18 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
     // draw info
     g.setStroke(new BasicStroke(1f));
     g.setColor(configuration.infoColor);
-    g.drawString("%.2fs".formatted(t), 5, 5 + g.getFontMetrics().getHeight());
+    g.drawString(
+        "%.2fs %s".formatted(
+            t,
+            configuration.showSymbolicAction ? step.state()
+                .symbolicAction(
+                    configuration.symbolicActionMovementThresholdRate,
+                    configuration.symbolicActionTurnThreshold
+                ) : ""
+        ),
+        5,
+        5 + g.getFontMetrics().getHeight()
+    );
     // draw input and output
     if (!configuration.ioType.equals(Configuration.IOType.OFF)) {
       drawIO(
