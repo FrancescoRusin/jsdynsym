@@ -258,10 +258,9 @@ public class Main {
         .build(
             """
                 ds.e.navigation(
-                  arena = ds.arena.prepared(
-                    name = u_barrier;
-                    initialRobotXRange = m.range(min=0.5;max=0.5);
-                    initialRobotYRange = m.range(min=0.8;max=0.8)
+                  arena = ds.arena.fromString(
+                    name = "deceptive-corridor";
+                    s = "s            |             |             |wwww     wwww|   w w w w   |   w w w w   |   w w w w   |   w w w w   |   www w w   |   w   w w   |wwww   wwwwww|             |           t "
                   );
                   robotRadius = 0.05
                 )

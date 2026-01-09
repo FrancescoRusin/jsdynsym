@@ -26,7 +26,9 @@ import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jnb.datastructure.Grid;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationArena;
+import java.util.Arrays;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.arena")
 public class Arenas {
@@ -65,6 +67,13 @@ public class Arenas {
         .replace(startString.charAt(0), NavigationArena.STARTING_POINT_CHAR)
         .replace(targetString.charAt(0), NavigationArena.TARGET_POINT_CHAR);
     String[] lines = s.split(Pattern.quote(separatorString.substring(0, 1)));
+    if (Arrays.stream(lines).mapToInt(String::length).distinct().count() != 1) {
+      throw new IllegalArgumentException(
+          "Non uniform number of chars per line: %s".formatted(
+              Arrays.stream(lines).map(l -> "%d".formatted(l.length())).collect(Collectors.joining(", "))
+          )
+      );
+    }
     Grid<Character> grid = Grid.create(
         lines[0].length(),
         lines.length,
