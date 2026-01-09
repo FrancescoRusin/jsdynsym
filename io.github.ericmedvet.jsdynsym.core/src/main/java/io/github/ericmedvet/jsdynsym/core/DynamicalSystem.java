@@ -20,10 +20,41 @@
 
 package io.github.ericmedvet.jsdynsym.core;
 
+import io.github.ericmedvet.jnb.datastructure.NamedFunction;
+import io.github.ericmedvet.jnb.datastructure.Pair;
+
 public interface DynamicalSystem<I, O, S> {
+
   S getState();
 
   void reset();
 
   O step(double t, I input);
+
+  default <O2, S2> DynamicalSystem<I, O2, Pair<S, S2>> andThen(DynamicalSystem<O, O2, S2> other) {
+    DynamicalSystem<I, O, S> thisDS = this;
+    return new DynamicalSystem<>() {
+      @Override
+      public Pair<S, S2> getState() {
+        return new Pair<>(thisDS.getState(), other.getState());
+      }
+
+      @Override
+      public void reset() {
+        thisDS.reset();
+        other.reset();
+      }
+
+      @Override
+      public O2 step(double t, I input) {
+        O o = thisDS.step(t, input);
+        return other.step(t, o);
+      }
+
+      @Override
+      public String toString() {
+        return thisDS + NamedFunction.NAME_JOINER + other;
+      }
+    };
+  }
 }

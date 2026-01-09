@@ -24,6 +24,7 @@ import io.github.ericmedvet.jnb.core.Cacheable;
 import io.github.ericmedvet.jnb.core.Discoverable;
 import io.github.ericmedvet.jnb.core.Param;
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
+import io.github.ericmedvet.jnb.datastructure.Pair;
 import io.github.ericmedvet.jsdynsym.core.composed.InStepped;
 import io.github.ericmedvet.jsdynsym.core.composed.OutStepped;
 import io.github.ericmedvet.jsdynsym.core.composed.Stepped;
@@ -41,7 +42,17 @@ public class NumericalDynamicalSystems {
   private NumericalDynamicalSystems() {
   }
 
-  @SuppressWarnings("unused")
+  @Cacheable
+  public static <S1, S2> Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<Pair<S1, S2>>> composition(
+      @Param("first") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S1>> first,
+      @Param("first") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S2>> second,
+      @Param("nOfInternalIO") int nOfInternalIO
+  ) {
+    return eNds -> first
+        .apply(MultivariateRealFunction.from(eNds.nOfInputs(), nOfInternalIO))
+        .andThen(second.apply(MultivariateRealFunction.from(nOfInternalIO, eNds.nOfOutputs())));
+  }
+
   @Cacheable
   public static Function<NumericalDynamicalSystem<?>, DelayedRecurrentNetwork> drn(
       @Param(value = "timeRange", dNPM = "m.range(min=0;max=1)") DoubleRange timeRange,
@@ -64,7 +75,6 @@ public class NumericalDynamicalSystems {
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <S> Function<NumericalDynamicalSystem<?>, EnhancedInput<S>> enhanced(
       @Param("windowT") double windowT,
@@ -79,7 +89,6 @@ public class NumericalDynamicalSystems {
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static Function<NumericalDynamicalSystem<?>, HebbianMultiLayerPerceptron> hebbianMlp(
       @Param(value = "innerLayerRatio", dD = 0.65) double innerLayerRatio,
@@ -107,7 +116,6 @@ public class NumericalDynamicalSystems {
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <S> Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<Stepped.State<S>>> inStepped(
       @Param(value = "stepT", dD = 1) double interval,
@@ -123,7 +131,6 @@ public class NumericalDynamicalSystems {
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static Function<NumericalDynamicalSystem<?>, LinearCombination> linear(
       @Param("zeroQ") boolean zeroQ
@@ -135,7 +142,6 @@ public class NumericalDynamicalSystems {
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static Function<NumericalDynamicalSystem<?>, MultiLayerPerceptron> mlp(
       @Param(value = "innerLayerRatio", dD = 0.65) double innerLayerRatio,
@@ -149,7 +155,9 @@ public class NumericalDynamicalSystems {
         int centerSize = (int) Math.max(2, Math.round(eNds.nOfInputs() * innerLayerRatio));
         if (nOfInnerLayers > 1) {
           for (int i = 0; i < nOfInnerLayers / 2; i++) {
-            innerNeurons[i] = eNds.nOfInputs() + (centerSize - eNds.nOfInputs()) / (nOfInnerLayers / 2 + 1) * (i + 1);
+            innerNeurons[i] =
+                eNds.nOfInputs() + (centerSize - eNds.nOfInputs()) / (nOfInnerLayers / 2 + 1) * (i
+                    + 1);
           }
           for (int i = nOfInnerLayers / 2; i < nOfInnerLayers; i++) {
             innerNeurons[i] = centerSize + (eNds
@@ -175,7 +183,6 @@ public class NumericalDynamicalSystems {
     };
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <S> Function<NumericalDynamicalSystem<?>, Noised<S>> noised(
       @Param(value = "inputSigma", dD = 0.01) double inputSigma,
@@ -191,7 +198,6 @@ public class NumericalDynamicalSystems {
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <S> Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<Stepped.State<S>>> outStepped(
       @Param(value = "stepT", dD = 1) double interval,
@@ -207,7 +213,6 @@ public class NumericalDynamicalSystems {
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static Function<NumericalDynamicalSystem<?>, Sinusoidal> sin(
       @Param(value = "p", dNPM = "m.range(min=-1.57;max=1.57)") DoubleRange phaseRange,
@@ -225,7 +230,6 @@ public class NumericalDynamicalSystems {
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <S> Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<Stepped.State<S>>> stepped(
       @Param(value = "stepT", dD = 0.1) double interval,

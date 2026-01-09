@@ -20,6 +20,8 @@
 
 package io.github.ericmedvet.jsdynsym.core.numerical;
 
+import io.github.ericmedvet.jnb.datastructure.NamedFunction;
+import io.github.ericmedvet.jnb.datastructure.Pair;
 import io.github.ericmedvet.jsdynsym.core.DynamicalSystem;
 
 public interface NumericalDynamicalSystem<S> extends DynamicalSystem<double[], double[], S> {
@@ -120,5 +122,52 @@ public interface NumericalDynamicalSystem<S> extends DynamicalSystem<double[], d
           "Wrong number of outputs: %d found, %d expected".formatted(nOfOutputs(), nOfOutputs)
       );
     }
+  }
+
+  default <S2> NumericalDynamicalSystem<Pair<S, S2>> andThen(
+      NumericalDynamicalSystem<S2> other
+  ) {
+    NumericalDynamicalSystem<S> thisNDS = this;
+    if (other.nOfInputs() != thisNDS.nOfOutputs()) {
+      throw new IllegalArgumentException(
+          "Wrong number of inputs of downstream numerical dynamical system: %d found, %d expected".formatted(
+              other.nOfInputs(),
+              thisNDS.nOfOutputs()
+          )
+      );
+    }
+    return new NumericalDynamicalSystem<>() {
+      @Override
+      public int nOfInputs() {
+        return thisNDS.nOfInputs();
+      }
+
+      @Override
+      public int nOfOutputs() {
+        return other.nOfOutputs();
+      }
+
+      @Override
+      public Pair<S, S2> getState() {
+        return new Pair<>(thisNDS.getState(), other.getState());
+      }
+
+      @Override
+      public void reset() {
+        thisNDS.reset();
+        other.reset();
+      }
+
+      @Override
+      public double[] step(double t, double[] input) {
+        double[] o = thisNDS.step(t, input);
+        return other.step(t, o);
+      }
+
+      @Override
+      public String toString() {
+        return thisNDS + NamedFunction.NAME_JOINER + other;
+      }
+    };
   }
 }

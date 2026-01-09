@@ -312,7 +312,7 @@ public class Main {
                   environment = ds.e.navigation(
                     arena = ds.arena.fromString(
                       name = "deceptive-corridor";
-                      s = "s            |             |             |wwww     wwww|   w w w w   |   w w w w   |   w w w w   |   w w w w   |   www w w   |   w   w w   |wwww   wwwwww|             |           t "
+                      s = "             |    s        |             |wwww     wwww|   w w w w   |   w w w w   |   w w w w   |   w w w w   |   www w w   |   w   w w   |wwww   wwwwww|             |           t "
                     );
                     robotRadius = 0.05
                    )
@@ -321,10 +321,18 @@ public class Main {
         );
     MultivariateRealFunction agent = MultivariateRealFunction.from(inputs -> {
       if (inputs[inputs.length / 2] < 0.5) {
-        return new double[]{-1, 1};
+        return new double[]{-1};
       }
-      return new double[]{1, 0.9};
-    }, rlTask.example().orElseThrow().nOfInputs(), 2);
+      return new double[]{0.01};
+    }, rlTask.example().orElseThrow().nOfInputs(), 1);
+    agent = agent.andThen(
+        MultivariateRealFunction.from(
+            d -> new double[]{1d + 2d * Math.min(0d, d[0]), 1d - 2d * Math.max(0d, d[0])
+            },
+            1,
+            2
+        )
+    );
     NavigationDrawer d = new NavigationDrawer(NavigationDrawer.Configuration.DEFAULT);
     @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, String> sTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, String>) nb
         .build("ds.e.n.symbolicTrajectory()");
@@ -345,7 +353,11 @@ public class Main {
                 .collect(
                     Collectors.toMap(
                         Entry::getKey,
-                        e -> new Step<>(e.getValue().observation().input(), e.getValue().action(), e.getValue().state())
+                        e -> new Step<>(
+                            e.getValue().observation().input(),
+                            e.getValue().action(),
+                            e.getValue().state()
+                        )
                     )
                 )
         )
@@ -354,8 +366,10 @@ public class Main {
     outcome.snapshots()
         .forEach(
             (t, s) -> System.out.printf(
-                "%4.1fs -> reward=%.4f sAction=%s%n",
+                "%4.1fs -> action=(%+5.3f,%+5.3f) reward=%.4f sAction=%s%n",
                 t,
+                s.action()[0],
+                s.action()[1],
                 s.observation().reward(),
                 s.state().symbolicAction(0.1, Math.PI / 20)
             )
