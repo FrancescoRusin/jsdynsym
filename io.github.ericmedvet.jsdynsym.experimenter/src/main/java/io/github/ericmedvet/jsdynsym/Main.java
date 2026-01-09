@@ -43,26 +43,20 @@ import io.github.ericmedvet.jsdynsym.core.numerical.ann.HebbianMultiLayerPercept
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.rl.FreeFormPlasticMLPRLAgent;
 import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent;
+import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent.RewardedInput;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
 import io.github.ericmedvet.jviz.core.drawer.Drawer.Arrangement;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.TreeMap;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 
 public class Main {
-
-  public static void main(String[] args) throws IOException {
-    // navigation();
-    // testMlp();
-    // pointNavigation();
-    // hebbianNavigation();
-    // testHebbian();
-    // freeFormNavigation();
-    manualNavigation();
-  }
 
   public static void freeFormNavigation() {
     NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
@@ -92,34 +86,6 @@ public class Main {
         //            .get(outcome.snapshots().lastKey())
         //            .state()).robotPosition();
         //        System.out.printf("%.2f;%.2f%n", finalRobotPosition.x(), finalRobotPosition.y());
-      }
-      long elapsedNanos = System.nanoTime() - startTime;
-      System.out.printf("%.2f%n", elapsedNanos / 1e9);
-    }
-  }
-
-  public static void testHebbian() {
-    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    @SuppressWarnings("unchecked") Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>> environment = (Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>>) nb
-        .build(
-            """
-                ds.e.navigation(
-                    arena = ds.arena.prepared(name = empty)
-                )
-                """
-        );
-    @SuppressWarnings("unchecked") HebbianMultiLayerPerceptron hmlp = ((Function<NumericalDynamicalSystem<?>, HebbianMultiLayerPerceptron>) nb
-        .build(
-            "ds.num.hebbianMlp(innerLayers = [8]; weightInitializationType = zeros)"
-        )).apply(environment.exampleAgent());
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
-        .fromEnvironment(() -> environment, s -> false, true);
-    int runs = 10;
-    for (int r = 0; r < runs; r++) {
-      long startTime = System.nanoTime();
-      for (int i = 0; i < 1000; i++) {
-        hmlp.reset();
-        task.simulate(hmlp, 0.1, new DoubleRange(0, 30));
       }
       long elapsedNanos = System.nanoTime() - startTime;
       System.out.printf("%.2f%n", elapsedNanos / 1e9);
@@ -172,31 +138,56 @@ public class Main {
         );
   }
 
-  public static void testMlp() {
+  public static void main(String[] args) throws IOException {
+    // navigation();
+    // testMlp();
+    // pointNavigation();
+    // hebbianNavigation();
+    // testHebbian();
+    // freeFormNavigation();
+    // manualNavigation();
+    rlNavigation();
+  }
+
+  public static void manualNavigation() {
     NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
     @SuppressWarnings("unchecked") Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>> environment = (Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>>) nb
         .build(
             """
                 ds.e.navigation(
-                    arena = ds.arena.prepared(name = empty)
+                  arena = ds.arena.fromString(
+                    name = "deceptive-corridor";
+                    s = "s            |             |             |wwww     wwww|   w w w w   |   w w w w   |   w w w w   |   w w w w   |   www w w   |   w   w w   |wwww   wwwwww|             |           t "
+                  );
+                  robotRadius = 0.05
                 )
                 """
         );
-    @SuppressWarnings("unchecked") MultiLayerPerceptron mlp = ((Function<NumericalDynamicalSystem<?>, MultiLayerPerceptron>) nb
-        .build(
-            "ds.num.mlp(innerLayers = [8])"
-        )).apply(environment.exampleAgent());
+    MultivariateRealFunction agent = MultivariateRealFunction.from(inputs -> {
+      if (inputs[inputs.length / 2] < 0.5) {
+        return new double[]{-1, 1};
+      }
+      return new double[]{1, 0.9};
+    }, environment.exampleAgent().nOfInputs(), 2);
+    NavigationDrawer d = new NavigationDrawer(NavigationDrawer.Configuration.DEFAULT);
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, String> sTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, String>) nb
+        .build("ds.e.n.symbolicTrajectory()");
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, Double> gap = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
+        .build("ds.e.n.avgGapToObstacle()");
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, Double> collapsedSTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
+        .build("ds.e.n.symbolicTrajectory(collapse = true)");
     SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
         .fromEnvironment(() -> environment, s -> false, true);
-    int runs = 10;
-    for (int r = 0; r < runs; r++) {
-      long startTime = System.nanoTime();
-      for (int i = 0; i < 1000; i++) {
-        task.simulate(mlp, 0.1, new DoubleRange(0, 30));
-      }
-      long elapsedNanos = System.nanoTime() - startTime;
-      System.out.printf("%.2f%n", elapsedNanos / 1e9);
-    }
+    Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> outcome = task.simulate(
+        agent,
+        0.1,
+        new DoubleRange(0, 30)
+    );
+    d.show(outcome);
+    System.out.println(sTraj + " = " + sTraj.applyFormatted(outcome));
+    System.out.println(gap + " = " + gap.applyFormatted(outcome));
+    System.out.println(collapsedSTraj + " = " + collapsedSTraj.applyFormatted(outcome));
+    d.videoBuilder().save(new File("../nav.mp4"), outcome);
   }
 
   public static void navigation() {
@@ -250,47 +241,6 @@ public class Main {
         .show(
             DoubleStream.iterate(0.05, v -> v <= 0.25, v -> v + 0.10).boxed().map(tResF).toList()
         );
-  }
-
-  public static void manualNavigation() {
-    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    @SuppressWarnings("unchecked") Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>> environment = (Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>>) nb
-        .build(
-            """
-                ds.e.navigation(
-                  arena = ds.arena.fromString(
-                    name = "deceptive-corridor";
-                    s = "s            |             |             |wwww     wwww|   w w w w   |   w w w w   |   w w w w   |   w w w w   |   www w w   |   w   w w   |wwww   wwwwww|             |           t "
-                  );
-                  robotRadius = 0.05
-                )
-                """
-        );
-    MultivariateRealFunction agent = MultivariateRealFunction.from(inputs -> {
-      if (inputs[inputs.length / 2] < 0.5) {
-        return new double[]{-1, 1};
-      }
-      return new double[]{1, 0.9};
-    }, environment.exampleAgent().nOfInputs(), 2);
-    NavigationDrawer d = new NavigationDrawer(NavigationDrawer.Configuration.DEFAULT);
-    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, String> sTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, String>) nb
-        .build("ds.e.n.symbolicTrajectory()");
-    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, Double> gap = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
-        .build("ds.e.n.avgGapToObstacle()");
-    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, Double> collapsedSTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
-        .build("ds.e.n.symbolicTrajectory(collapse = true)");
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
-        .fromEnvironment(() -> environment, s -> false, true);
-    Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> outcome = task.simulate(
-        agent,
-        0.1,
-        new DoubleRange(0, 30)
-    );
-    d.show(outcome);
-    System.out.println(sTraj + " = " + sTraj.applyFormatted(outcome));
-    System.out.println(gap + " = " + gap.applyFormatted(outcome));
-    System.out.println(collapsedSTraj + " = " + collapsedSTraj.applyFormatted(outcome));
-    d.videoBuilder().save(new File("../nav.mp4"), outcome);
   }
 
   @SuppressWarnings("unchecked")
@@ -350,5 +300,120 @@ public class Main {
     new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT)
         .videoBuilder()
         .save(new File("../point-navigation.mp4"), outcome);
+  }
+
+  public static void rlNavigation() {
+    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
+    @SuppressWarnings("unchecked") SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], NavigationEnvironment.State> rlTask = (SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], NavigationEnvironment.State>) nb
+        .build(
+            """
+                ds.srlat.fromNumericalEnvironment(
+                  reward = ds.e.nav.reward.reaching();
+                  environment = ds.e.navigation(
+                    arena = ds.arena.fromString(
+                      name = "deceptive-corridor";
+                      s = "s            |             |             |wwww     wwww|   w w w w   |   w w w w   |   w w w w   |   w w w w   |   www w w   |   w   w w   |wwww   wwwwww|             |           t "
+                    );
+                    robotRadius = 0.05
+                   )
+                )
+                """
+        );
+    MultivariateRealFunction agent = MultivariateRealFunction.from(inputs -> {
+      if (inputs[inputs.length / 2] < 0.5) {
+        return new double[]{-1, 1};
+      }
+      return new double[]{1, 0.9};
+    }, rlTask.example().orElseThrow().nOfInputs(), 2);
+    NavigationDrawer d = new NavigationDrawer(NavigationDrawer.Configuration.DEFAULT);
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, String> sTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, String>) nb
+        .build("ds.e.n.symbolicTrajectory()");
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, Double> gap = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
+        .build("ds.e.n.avgGapToObstacle()");
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, Double> collapsedSTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
+        .build("ds.e.n.symbolicTrajectory(collapse = true)");
+    Simulation.Outcome<Step<RewardedInput<double[]>, double[], State>> outcome = rlTask.simulate(
+        NumericalReinforcementLearningAgent.from(agent),
+        0.1,
+        new DoubleRange(0, 30)
+    );
+    Outcome<Step<double[], double[], State>> sOutcome = Outcome.of(
+        new TreeMap<>(
+            outcome.snapshots()
+                .entrySet()
+                .stream()
+                .collect(
+                    Collectors.toMap(
+                        Entry::getKey,
+                        e -> new Step<>(e.getValue().observation().input(), e.getValue().action(), e.getValue().state())
+                    )
+                )
+        )
+    );
+    d.show(sOutcome);
+    outcome.snapshots()
+        .forEach(
+            (t, s) -> System.out.printf(
+                "%4.1fs -> reward=%.4f sAction=%s%n",
+                t,
+                s.observation().reward(),
+                s.state().symbolicAction(0.1, Math.PI / 20)
+            )
+        );
+  }
+
+  public static void testHebbian() {
+    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
+    @SuppressWarnings("unchecked") Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>> environment = (Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>>) nb
+        .build(
+            """
+                ds.e.navigation(
+                    arena = ds.arena.prepared(name = empty)
+                )
+                """
+        );
+    @SuppressWarnings("unchecked") HebbianMultiLayerPerceptron hmlp = ((Function<NumericalDynamicalSystem<?>, HebbianMultiLayerPerceptron>) nb
+        .build(
+            "ds.num.hebbianMlp(innerLayers = [8]; weightInitializationType = zeros)"
+        )).apply(environment.exampleAgent());
+    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
+        .fromEnvironment(() -> environment, s -> false, true);
+    int runs = 10;
+    for (int r = 0; r < runs; r++) {
+      long startTime = System.nanoTime();
+      for (int i = 0; i < 1000; i++) {
+        hmlp.reset();
+        task.simulate(hmlp, 0.1, new DoubleRange(0, 30));
+      }
+      long elapsedNanos = System.nanoTime() - startTime;
+      System.out.printf("%.2f%n", elapsedNanos / 1e9);
+    }
+  }
+
+  public static void testMlp() {
+    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
+    @SuppressWarnings("unchecked") Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>> environment = (Environment<double[], double[], NavigationEnvironment.State, NumericalDynamicalSystem<?>>) nb
+        .build(
+            """
+                ds.e.navigation(
+                    arena = ds.arena.prepared(name = empty)
+                )
+                """
+        );
+    @SuppressWarnings("unchecked") MultiLayerPerceptron mlp = ((Function<NumericalDynamicalSystem<?>, MultiLayerPerceptron>) nb
+        .build(
+            "ds.num.mlp(innerLayers = [8])"
+        )).apply(environment.exampleAgent());
+    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
+        .fromEnvironment(() -> environment, s -> false, true);
+    int runs = 10;
+    for (int r = 0; r < runs; r++) {
+      long startTime = System.nanoTime();
+      for (int i = 0; i < 1000; i++) {
+        task.simulate(mlp, 0.1, new DoubleRange(0, 30));
+      }
+      long elapsedNanos = System.nanoTime() - startTime;
+      System.out.printf("%.2f%n", elapsedNanos / 1e9);
+    }
   }
 }

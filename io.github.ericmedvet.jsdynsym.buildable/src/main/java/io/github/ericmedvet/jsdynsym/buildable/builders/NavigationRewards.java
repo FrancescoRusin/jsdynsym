@@ -32,33 +32,27 @@ public class NavigationRewards {
   private NavigationRewards() {
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> reaching(
+      @Param(value = "name", iS = "reaching[{targetProximityRadius:%.2f}]") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, State> beforeF,
-      @Param(value = "targetProximityRadius", dD = 0.1) double targetProximityRadius,
+      @Param(value = "targetProximityRadius", dD = 0.05) double targetProximityRadius,
       @Param(value = "targetProximityReward", dD = 1) double targetProximityReward,
       @Param(value = "collisionPenalty", dD = 0.01) double collisionPenalty,
-      @Param(value = "distanceWeight", dD = 0.1) double distanceWeight,
+      @Param(value = "distanceWeight", dD = -0.01) double distanceWeight,
+      @Param(value = "distanceDecreaseWeight", dD = 0.1) double distanceDecreaseWeight,
       @Param(value = "format", dS = "%5.3f") String format
   ) {
     Function<State, Double> f = s -> {
       double currentDistance = s.robotPosition().distance(s.targetPosition());
       double previousDistance = s.robotPreviousPosition().distance(s.targetPosition());
-      double reward = distanceWeight * (previousDistance - currentDistance);
+      double reward = distanceDecreaseWeight * (previousDistance - currentDistance);
+      reward = reward + distanceWeight * currentDistance;
       reward = reward + (currentDistance < targetProximityRadius ? targetProximityReward : 0d);
       reward = reward - (s.hasCollided() ? collisionPenalty : 0d);
       return reward;
     };
-    return FormattedNamedFunction.from(
-        f,
-        format,
-        "reaching[%.2f;%.2f;%.2f]".formatted(
-            targetProximityRadius,
-            targetProximityReward,
-            collisionPenalty
-        )
-    ).compose(beforeF);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
 }
