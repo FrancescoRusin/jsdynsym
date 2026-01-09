@@ -33,8 +33,11 @@ import io.github.ericmedvet.jsdynsym.control.SingleAgentTask.Step;
 import io.github.ericmedvet.jsdynsym.core.DynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.FrozenableDynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.StatelessSystem;
+import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.rl.FrozenableRLAgent;
+import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent;
+import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent;
 import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent.RewardedInput;
 import java.util.Arrays;
 import java.util.List;
@@ -48,6 +51,26 @@ import java.util.stream.Collectors;
 public class Functions {
 
   private Functions() {
+  }
+
+  @Cacheable
+  public static <X, S> FormattedNamedFunction<X, NumericalReinforcementLearningAgent<S>> asNumericaRLAgent(
+      @Param(value = "name", dS = "as.numrl.agent") String name,
+      @Param(value = "of", dNPM = "f.identity()") Function<X, NumericalDynamicalSystem<S>> beforeF,
+      @Param(value = "format", dS = "%s") String format
+  ) {
+    Function<NumericalDynamicalSystem<S>, NumericalReinforcementLearningAgent<S>> f = NumericalReinforcementLearningAgent::from;
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
+  }
+
+  @Cacheable
+  public static <X, I, O, S> FormattedNamedFunction<X, ReinforcementLearningAgent<I, O, S>> asRLAgent(
+      @Param(value = "name", dS = "as.rl.agent") String name,
+      @Param(value = "of", dNPM = "f.identity()") Function<X, DynamicalSystem<I, O, S>> beforeF,
+      @Param(value = "format", dS = "%s") String format
+  ) {
+    Function<DynamicalSystem<I, O, S>, ReinforcementLearningAgent<I, O, S>> f = ReinforcementLearningAgent::from;
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
   @Cacheable
