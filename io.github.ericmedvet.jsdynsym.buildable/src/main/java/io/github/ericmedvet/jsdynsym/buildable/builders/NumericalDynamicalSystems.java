@@ -47,11 +47,11 @@ public class NumericalDynamicalSystems {
   public static <S1, S2> Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<Pair<S1, S2>>> composition(
       @Param("first") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S1>> first,
       @Param("second") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S2>> second,
-      @Param("nOfInternalIO") int nOfInternalIO
+      @Param("nOfInternalIOs") int nOfInternalIOs
   ) {
     return eNds -> first
-        .apply(MultivariateRealFunction.from(eNds.nOfInputs(), nOfInternalIO))
-        .andThen(second.apply(MultivariateRealFunction.from(nOfInternalIO, eNds.nOfOutputs())));
+        .apply(MultivariateRealFunction.from(eNds.nOfInputs(), nOfInternalIOs))
+        .andThen(second.apply(MultivariateRealFunction.from(nOfInternalIOs, eNds.nOfOutputs())));
   }
 
   @Cacheable
