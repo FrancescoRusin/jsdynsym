@@ -131,7 +131,7 @@ public class NavigationEnvironment implements NumericalDynamicalSystem<State>, E
 
   @Override
   public NumericalDynamicalSystem<?> exampleAgent() {
-    return MultivariateRealFunction.from(o -> new double[nOfInputs()], nOfOutputs(), nOfInputs());
+    return MultivariateRealFunction.from(nOfOutputs(), nOfInputs());
   }
 
   @Override

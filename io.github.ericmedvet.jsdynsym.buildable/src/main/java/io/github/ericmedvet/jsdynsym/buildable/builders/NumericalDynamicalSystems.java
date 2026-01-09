@@ -92,7 +92,7 @@ public class NumericalDynamicalSystems {
 
   @Cacheable
   public static Function<NumericalDynamicalSystem<?>, MultivariateRealFunction> fromFunctions(
-      @Param(value = "name", iS = "functions") String name,
+      @Param(value = "name", iS = "{functions}") String name,
       @Param("functions") List<Function<Double, Double>> functions
   ) {
     return eNds -> {

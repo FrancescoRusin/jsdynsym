@@ -35,6 +35,7 @@ import java.util.random.RandomGenerator;
 
 @Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.environment|env|e")
 public class Environments {
+
   private Environments() {
   }
 
@@ -94,7 +95,7 @@ public class Environments {
                 initialRobotDirectionRange,
                 robotRadius,
                 robotMaxV,
-                sensorsAngleRange.points(nOfSensors).boxed().toList(),
+                sensorsAngleRange.points(nOfSensors - 1).boxed().toList(),
                 sensorRange,
                 senseTarget,
                 arena,
