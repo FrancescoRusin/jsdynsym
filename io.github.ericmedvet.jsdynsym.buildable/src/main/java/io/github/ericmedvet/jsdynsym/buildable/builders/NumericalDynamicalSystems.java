@@ -24,6 +24,7 @@ import io.github.ericmedvet.jnb.core.Cacheable;
 import io.github.ericmedvet.jnb.core.Discoverable;
 import io.github.ericmedvet.jnb.core.Param;
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
+import io.github.ericmedvet.jnb.datastructure.NamedFunction;
 import io.github.ericmedvet.jnb.datastructure.Pair;
 import io.github.ericmedvet.jsdynsym.core.composed.InStepped;
 import io.github.ericmedvet.jsdynsym.core.composed.OutStepped;
@@ -45,7 +46,7 @@ public class NumericalDynamicalSystems {
   @Cacheable
   public static <S1, S2> Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<Pair<S1, S2>>> composition(
       @Param("first") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S1>> first,
-      @Param("first") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S2>> second,
+      @Param("second") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S2>> second,
       @Param("nOfInternalIO") int nOfInternalIO
   ) {
     return eNds -> first
@@ -87,6 +88,31 @@ public class NumericalDynamicalSystems {
         windowT,
         types
     );
+  }
+
+  @Cacheable
+  public static Function<NumericalDynamicalSystem<?>, MultivariateRealFunction> fromFunctions(
+      @Param(value = "name", iS = "functions") String name,
+      @Param("functions") List<Function<Double, Double>> functions
+  ) {
+    return eNds -> {
+      if (eNds.nOfInputs() != 1) {
+        throw new IllegalArgumentException("Functions-based NDS works only for 1 input");
+      }
+      if (eNds.nOfOutputs() != functions.size()) {
+        throw new IllegalArgumentException(
+            "Wrong number of outputs for functions-based NDS: %d functions, %d required outputs".formatted(
+                functions.size(),
+                eNds.nOfOutputs()
+            )
+        );
+      }
+      return MultivariateRealFunction.from(
+          NamedFunction.from(inputs -> functions.stream().mapToDouble(f -> f.apply(inputs[0])).toArray(), name),
+          1,
+          functions.size()
+      );
+    };
   }
 
   @Cacheable
@@ -155,9 +181,7 @@ public class NumericalDynamicalSystems {
         int centerSize = (int) Math.max(2, Math.round(eNds.nOfInputs() * innerLayerRatio));
         if (nOfInnerLayers > 1) {
           for (int i = 0; i < nOfInnerLayers / 2; i++) {
-            innerNeurons[i] =
-                eNds.nOfInputs() + (centerSize - eNds.nOfInputs()) / (nOfInnerLayers / 2 + 1) * (i
-                    + 1);
+            innerNeurons[i] = eNds.nOfInputs() + (centerSize - eNds.nOfInputs()) / (nOfInnerLayers / 2 + 1) * (i + 1);
           }
           for (int i = nOfInnerLayers / 2; i < nOfInnerLayers; i++) {
             innerNeurons[i] = centerSize + (eNds
