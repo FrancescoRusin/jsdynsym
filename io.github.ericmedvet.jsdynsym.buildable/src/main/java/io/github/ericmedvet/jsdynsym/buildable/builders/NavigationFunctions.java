@@ -192,7 +192,7 @@ public class NavigationFunctions {
 
   @Cacheable
   public static <X> NamedFunction<X, Point> finalRobotP(
-      @Param(value = "name", iS = "final.pos") String name,
+      @Param(value = "name", iS = "final.robot.pos") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
       @Param(value = "normalized", dB = true) boolean normalized
   ) {
@@ -205,6 +205,32 @@ public class NavigationFunctions {
           .configuration()
           .arena();
       Point p = o.snapshots().get(o.snapshots().lastKey()).state().robotPosition();
+      if (normalized) {
+        return new Point(
+            new DoubleRange(0, arena.xExtent()).normalize(p.x()),
+            new DoubleRange(0, arena.yExtent()).normalize(p.y())
+        );
+      }
+      return p;
+    };
+    return NamedFunction.from(f, name).compose(beforeF);
+  }
+
+  @Cacheable
+  public static <X> NamedFunction<X, Point> finalTargetP(
+      @Param(value = "name", iS = "final.target.pos") String name,
+      @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>> beforeF,
+      @Param(value = "normalized", dB = true) boolean normalized
+  ) {
+    Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], State>>, Point> f = o -> {
+      Arena arena = o.snapshots()
+          .values()
+          .iterator()
+          .next()
+          .state()
+          .configuration()
+          .arena();
+      Point p = o.snapshots().get(o.snapshots().lastKey()).state().targetPosition();
       if (normalized) {
         return new Point(
             new DoubleRange(0, arena.xExtent()).normalize(p.x()),
