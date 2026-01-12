@@ -54,7 +54,7 @@ public class Functions {
   }
 
   @Cacheable
-  public static <X, S> FormattedNamedFunction<X, NumericalReinforcementLearningAgent<S>> asNumericaRLAgent(
+  public static <X, S> FormattedNamedFunction<X, NumericalReinforcementLearningAgent<S>> asNumericalRLAgent(
       @Param(value = "name", dS = "as.numrl.agent") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, NumericalDynamicalSystem<S>> beforeF,
       @Param(value = "format", dS = "%s") String format
