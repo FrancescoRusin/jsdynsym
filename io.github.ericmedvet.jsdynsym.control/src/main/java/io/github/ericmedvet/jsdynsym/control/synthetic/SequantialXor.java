@@ -44,6 +44,14 @@ public class SequantialXor implements Simulation<NumericalReinforcementLearningA
     return Optional.of(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)));
   }
 
+  public static double computeError(double output, double gtOutput, RewardType rewardType) {
+    return switch (rewardType) {
+      case BOOLEAN_ERROR -> (output * gtOutput > 0) ? 1d : -1d;
+      case ERROR -> gtOutput * output;
+      case TRUNCATED_ERROR -> Math.max(gtOutput * output, 1);
+    };
+  }
+
   @Override
   public Outcome<Step> simulate(NumericalReinforcementLearningAgent<?> agent, double dT, DoubleRange tRange) {
     SortedMap<Double, Step> steps = new TreeMap<>();
@@ -56,11 +64,7 @@ public class SequantialXor implements Simulation<NumericalReinforcementLearningA
       double[] inputs = cases.get(c++ % cases.size());
       double output = agent.step(t, inputs, reward)[0];
       double gtOutput = ((inputs[0] > 0) ^ (inputs[1] > 0)) ? 1 : -1;
-      reward = switch (rewardType) {
-        case BOOLEAN -> (output * gtOutput > 0) ? 1d : -1d;
-        case ERROR -> gtOutput * output;
-        case TRUNCATED_ERROR -> Math.max(gtOutput * output, 1);
-      };
+      reward = computeError(output, gtOutput, rewardType);
       steps.put(t, new Step(inputs, output, gtOutput, reward));
     }
     return Outcome.of(steps);
@@ -72,7 +76,7 @@ public class SequantialXor implements Simulation<NumericalReinforcementLearningA
   }
 
   public enum RewardType {
-    BOOLEAN, TRUNCATED_ERROR, ERROR
+    BOOLEAN_ERROR, TRUNCATED_ERROR, ERROR
   }
 
   public record Step(double[] inputs, double output, double groundTruthOutput, double reward) {
