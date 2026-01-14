@@ -41,7 +41,7 @@ public class Simulations {
       @Param(value = "name", iS = "sequantialXor") String name,
       @Param(value = "cases", dSs = {"00", "01", "10", "11"}) List<String> cases,
       @Param("resetAgent") boolean resetAgent,
-      @Param(value = "rewardType", dS = "error") SequantialXor.RewardType rewardType
+      @Param(value = "rewardType", dS = "unlimited") SequantialXor.RewardType rewardType
   ) {
     return new SequantialXor(
         cases.stream().map(s -> s.chars().mapToDouble(c -> c == '0' ? -1 : 1).toArray()).toList(),

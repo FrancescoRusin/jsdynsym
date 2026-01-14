@@ -38,7 +38,7 @@ public class SequentialXorFunctions {
       @Param(value = "name", iS = "avg[{rewardType}]") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SequantialXor.Step>> beforeF,
       @Param(value = "format", dS = "%+5.3f") String format,
-      @Param(value = "rewardType", dS = "error") SequantialXor.RewardType rewardType,
+      @Param(value = "rewardType", dS = "unlimited") SequantialXor.RewardType rewardType,
       @Param("caseIndexes") List<Integer> caseIndexes
   ) {
     Function<Simulation.Outcome<SequantialXor.Step>, Double> f = o -> {
