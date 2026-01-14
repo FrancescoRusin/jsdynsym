@@ -46,9 +46,9 @@ public class SequantialXor implements Simulation<NumericalReinforcementLearningA
 
   public static double computeError(double output, double gtOutput, RewardType rewardType) {
     return switch (rewardType) {
-      case BOOLEAN_ERROR -> (output * gtOutput > 0) ? 1d : -1d;
-      case ERROR -> gtOutput * output;
-      case TRUNCATED_ERROR -> Math.max(gtOutput * output, 1);
+      case BOOLEAN -> (output * gtOutput > 0) ? 1d : -1d;
+      case UNLIMITED -> gtOutput * output;
+      case LIMITED -> Math.max(gtOutput * output, 1);
     };
   }
 
@@ -76,7 +76,7 @@ public class SequantialXor implements Simulation<NumericalReinforcementLearningA
   }
 
   public enum RewardType {
-    BOOLEAN_ERROR, TRUNCATED_ERROR, ERROR
+    BOOLEAN, LIMITED, UNLIMITED
   }
 
   public record Step(double[] inputs, double output, double groundTruthOutput, double reward) {
