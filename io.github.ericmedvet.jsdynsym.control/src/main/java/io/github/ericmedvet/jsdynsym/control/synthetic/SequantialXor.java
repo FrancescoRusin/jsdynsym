@@ -23,10 +23,8 @@ import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jsdynsym.control.Simulation;
 import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent;
-import java.util.List;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class SequantialXor implements Simulation<NumericalReinforcementLearningAgent<?>, SequantialXor.Step, Simulation.Outcome<SequantialXor.Step>> {
   private final List<double[]> cases;
@@ -80,5 +78,8 @@ public class SequantialXor implements Simulation<NumericalReinforcementLearningA
   }
 
   public record Step(double[] inputs, double output, double groundTruthOutput, double reward) {
+    public String stringInputs() {
+      return Arrays.stream(inputs).mapToObj(i -> (i < 0) ? "0" : "1").collect(Collectors.joining());
+    }
   }
 }
