@@ -24,6 +24,7 @@ import io.github.ericmedvet.jsdynsym.control.Environment;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.geometry.Segment;
 import io.github.ericmedvet.jsdynsym.control.geometry.Semiline;
+import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment.Configuration.TargetSensing;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment.State;
 import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
@@ -34,143 +35,9 @@ import java.util.random.RandomGenerator;
 
 public class NavigationEnvironment implements NumericalDynamicalSystem<State>, Environment<double[], double[], State, NumericalDynamicalSystem<?>> {
 
-  public record Configuration(
-      DoubleRange initialRobotDirectionRange,
-      double robotRadius,
-      double robotMaxV,
-      List<Double> sensorAngles,
-      double sensorRange,
-      boolean senseTarget,
-      NavigationArena arena,
-      boolean rescaleInput,
-      boolean relativeSpeed,
-      RandomGenerator randomGenerator
-  ) implements io.github.ericmedvet.jsdynsym.control.navigation.Configuration {
-
-  }
-
-  public record State(
-      double t,
-      double previousT,
-      Configuration configuration,
-      Point targetPosition,
-      Point robotPosition,
-      Point robotPreviousPosition,
-      double robotDirection,
-      double robotPreviousDirection,
-      boolean hasCollided
-  ) implements io.github.ericmedvet.jsdynsym.control.navigation.State {
-
-    public enum SymbolicAction {
-      STOP("o"), ROTATE_LEFT("↶"), ROTATE_RIGHT("↷"), FORWARD("↑"), FORWARD_LEFT("↖"), FORWARD_RIGHT("↗"), BACKWARD(
-          "↓"
-      ), BACKWARD_LEFT("↙"), BACKWARD_RIGHT("↘");
-
-      private final String s;
-
-      SymbolicAction(String s) {
-        this.s = s;
-      }
-
-      @Override
-      public String toString() {
-        return s;
-      }
-    }
-
-    public SymbolicAction symbolicAction(double movementThresholdRate, double turnThreshold) {
-      if (previousT == t) {
-        return SymbolicAction.STOP;
-      }
-      double maxV = configuration.robotMaxV() * (configuration.relativeSpeed() ? (t - previousT) : 1d);
-      double vT = maxV * movementThresholdRate;
-      Point dP = robotPosition.diff(robotPreviousPosition);
-      double sign = Math.min(
-          dP.direction() - robotDirection,
-          2d * Math.PI - dP.direction() - robotDirection
-      ) < Math.PI / 2d ? 1d : -1d;
-      double dV = dP.magnitude() * sign;
-      double dA = (robotDirection - robotPreviousDirection - 2d * Math.PI) % Math.PI;
-      dA = dA > Math.PI ? (dA - 2d * Math.PI) : dA;
-      double turnR = Math.abs(dV / Math.sin(dA));
-      if (dV > vT) {
-        if (turnR < turnThreshold && dA < 0) {
-          return SymbolicAction.FORWARD_RIGHT;
-        }
-        if (turnR < turnThreshold && dA > 0) {
-          return SymbolicAction.FORWARD_LEFT;
-        }
-        return SymbolicAction.FORWARD;
-      }
-      if (dV < -vT) {
-        if (turnR < turnThreshold && dA < 0) {
-          return SymbolicAction.BACKWARD_LEFT;
-        }
-        if (turnR < turnThreshold && dA > 0) {
-          return SymbolicAction.BACKWARD_RIGHT;
-        }
-        return SymbolicAction.BACKWARD;
-      }
-      if (turnR < turnThreshold && dA < 0) {
-        return SymbolicAction.ROTATE_RIGHT;
-      }
-      if (turnR < turnThreshold && dA > 0) {
-        return SymbolicAction.ROTATE_RIGHT;
-      }
-      return SymbolicAction.STOP;
-    }
-  }
-
-  private final Configuration configuration;
-  private State state;
-
-  public NavigationEnvironment(Configuration configuration) {
-    this.configuration = configuration;
-    reset();
-  }
-
   @Override
-  public NumericalDynamicalSystem<?> exampleAgent() {
-    return MultivariateRealFunction.from(nOfOutputs(), nOfInputs());
-  }
-
-  @Override
-  public double[] defaultObservation() {
-    return new double[nOfOutputs()];
-  }
-
-  @Override
-  public State getState() {
-    return state;
-  }
-
-  @Override
-  public void reset() {
-    Point inititalRobotPosition = new Point(
-        configuration.arena.startXRange()
-            .denormalize(configuration.randomGenerator.nextDouble()),
-        configuration.arena.startYRange()
-            .denormalize(configuration.randomGenerator.nextDouble())
-    );
-    double initialRobotDirection = configuration.initialRobotDirectionRange.denormalize(
-        configuration.randomGenerator.nextDouble()
-    );
-    state = new State(
-        0d,
-        0d,
-        configuration,
-        new Point(
-            configuration.arena.targetXRange()
-                .denormalize(configuration.randomGenerator.nextDouble()),
-            configuration.arena.targetYRange()
-                .denormalize(configuration.randomGenerator.nextDouble())
-        ),
-        inititalRobotPosition,
-        inititalRobotPosition,
-        initialRobotDirection,
-        initialRobotDirection,
-        false
-    );
+  public int nOfOutputs() {
+    return configuration.sensorAngles.size() + (!configuration.targetSensing.equals(TargetSensing.NONE) ? 2 : 0);
   }
 
   @Override
@@ -237,12 +104,24 @@ public class NavigationEnvironment implements NumericalDynamicalSystem<State>, E
               .orElse(Double.POSITIVE_INFINITY);
         })
         .toArray();
-    double[] observation = configuration.senseTarget ? new double[configuration.sensorAngles.size() + 2] : sInputs;
-    if (configuration.senseTarget) {
+    double[] observation = !configuration.targetSensing.equals(
+        TargetSensing.NONE
+    ) ? new double[configuration.sensorAngles.size() + 2] : sInputs;
+    if (!configuration.targetSensing.equals(TargetSensing.NONE)) {
       System.arraycopy(sInputs, 0, observation, 2, sInputs.length);
       double d = state.robotPosition.distance(state.targetPosition);
       double a = (state.targetPosition.diff(state.robotPosition).direction() - state.robotDirection) % (2d * Math.PI);
-      observation[0] = sensorsRange.normalize(d);
+      observation[0] = switch (configuration.targetSensing) {
+        case LIMITED -> sensorsRange.normalize(d);
+        case UNLIMITED -> new DoubleRange(
+            0,
+            Math.sqrt(
+                configuration.arena().xExtent() * configuration.arena().xExtent() + configuration.arena()
+                    .yExtent() * configuration.arena().yExtent()
+            )
+        ).normalize(d);
+        default -> 0d; // it is not actually reachable
+      };
       observation[1] = new DoubleRange(-2d * Math.PI, 2d * Math.PI).normalize(a);
     }
     if (configuration.rescaleInput) {
@@ -253,13 +132,150 @@ public class NavigationEnvironment implements NumericalDynamicalSystem<State>, E
     return observation;
   }
 
+  private final Configuration configuration;
+  private State state;
+
+  public NavigationEnvironment(Configuration configuration) {
+    this.configuration = configuration;
+    reset();
+  }
+
+  @Override
+  public NumericalDynamicalSystem<?> exampleAgent() {
+    return MultivariateRealFunction.from(nOfOutputs(), nOfInputs());
+  }
+
+  @Override
+  public double[] defaultObservation() {
+    return new double[nOfOutputs()];
+  }
+
+  @Override
+  public State getState() {
+    return state;
+  }
+
+  @Override
+  public void reset() {
+    Point inititalRobotPosition = new Point(
+        configuration.arena.startXRange()
+            .denormalize(configuration.randomGenerator.nextDouble()),
+        configuration.arena.startYRange()
+            .denormalize(configuration.randomGenerator.nextDouble())
+    );
+    double initialRobotDirection = configuration.initialRobotDirectionRange.denormalize(
+        configuration.randomGenerator.nextDouble()
+    );
+    state = new State(
+        0d,
+        0d,
+        configuration,
+        new Point(
+            configuration.arena.targetXRange()
+                .denormalize(configuration.randomGenerator.nextDouble()),
+            configuration.arena.targetYRange()
+                .denormalize(configuration.randomGenerator.nextDouble())
+        ),
+        inititalRobotPosition,
+        inititalRobotPosition,
+        initialRobotDirection,
+        initialRobotDirection,
+        false
+    );
+  }
+
+  public record Configuration(
+      DoubleRange initialRobotDirectionRange,
+      double robotRadius,
+      double robotMaxV,
+      List<Double> sensorAngles,
+      double sensorRange,
+      TargetSensing targetSensing,
+      NavigationArena arena,
+      boolean rescaleInput,
+      boolean relativeSpeed,
+      RandomGenerator randomGenerator
+  ) implements io.github.ericmedvet.jsdynsym.control.navigation.Configuration {
+
+    public enum TargetSensing { NONE, LIMITED, UNLIMITED }
+  }
+
   @Override
   public int nOfInputs() {
     return 2;
   }
 
-  @Override
-  public int nOfOutputs() {
-    return configuration.sensorAngles.size() + (configuration.senseTarget ? 2 : 0);
+  public record State(
+      double t,
+      double previousT,
+      Configuration configuration,
+      Point targetPosition,
+      Point robotPosition,
+      Point robotPreviousPosition,
+      double robotDirection,
+      double robotPreviousDirection,
+      boolean hasCollided
+  ) implements io.github.ericmedvet.jsdynsym.control.navigation.State {
+
+    public enum SymbolicAction {
+      STOP("o"), ROTATE_LEFT("↶"), ROTATE_RIGHT("↷"), FORWARD("↑"), FORWARD_LEFT(
+          "↖"
+      ), FORWARD_RIGHT("↗"), BACKWARD(
+          "↓"
+      ), BACKWARD_LEFT("↙"), BACKWARD_RIGHT("↘");
+
+      private final String s;
+
+      SymbolicAction(String s) {
+        this.s = s;
+      }
+
+      @Override
+      public String toString() {
+        return s;
+      }
+    }
+
+    public SymbolicAction symbolicAction(double movementThresholdRate, double turnThreshold) {
+      if (previousT == t) {
+        return SymbolicAction.STOP;
+      }
+      double maxV = configuration.robotMaxV() * (configuration.relativeSpeed() ? (t - previousT) : 1d);
+      double vT = maxV * movementThresholdRate;
+      Point dP = robotPosition.diff(robotPreviousPosition);
+      double sign = Math.min(
+          dP.direction() - robotDirection,
+          2d * Math.PI - dP.direction() - robotDirection
+      ) < Math.PI / 2d ? 1d : -1d;
+      double dV = dP.magnitude() * sign;
+      double dA = (robotDirection - robotPreviousDirection - 2d * Math.PI) % Math.PI;
+      dA = dA > Math.PI ? (dA - 2d * Math.PI) : dA;
+      double turnR = Math.abs(dV / Math.sin(dA));
+      if (dV > vT) {
+        if (turnR < turnThreshold && dA < 0) {
+          return SymbolicAction.FORWARD_RIGHT;
+        }
+        if (turnR < turnThreshold && dA > 0) {
+          return SymbolicAction.FORWARD_LEFT;
+        }
+        return SymbolicAction.FORWARD;
+      }
+      if (dV < -vT) {
+        if (turnR < turnThreshold && dA < 0) {
+          return SymbolicAction.BACKWARD_LEFT;
+        }
+        if (turnR < turnThreshold && dA > 0) {
+          return SymbolicAction.BACKWARD_RIGHT;
+        }
+        return SymbolicAction.BACKWARD;
+      }
+      if (turnR < turnThreshold && dA < 0) {
+        return SymbolicAction.ROTATE_RIGHT;
+      }
+      if (turnR < turnThreshold && dA > 0) {
+        return SymbolicAction.ROTATE_RIGHT;
+      }
+      return SymbolicAction.STOP;
+    }
   }
 }

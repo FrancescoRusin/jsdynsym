@@ -75,7 +75,7 @@ public class VariableSensorPositionsNavigation implements Simulation<Pair<List<D
         configuration.robotMaxV(),
         angles,
         configuration.sensorRange(),
-        configuration.senseTarget(),
+        configuration.targetSensing(),
         configuration.arena(),
         configuration.rescaleInput(),
         configuration.relativeSpeed(),
