@@ -30,14 +30,15 @@ import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask.Step;
 import io.github.ericmedvet.jsdynsym.control.SingleRLAgentTask;
 import io.github.ericmedvet.jsdynsym.control.drawer.VectorFieldDrawer;
+import io.github.ericmedvet.jsdynsym.control.drawer.VectorialTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment;
-import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment.State;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.RewardType;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.State;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXorDrawer;
 import io.github.ericmedvet.jsdynsym.core.numerical.LinearCombination;
 import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
@@ -46,9 +47,11 @@ import io.github.ericmedvet.jsdynsym.core.numerical.ann.HebbianMultiLayerPercept
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.rl.FreeFormPlasticMLPRLAgent;
 import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent;
+import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent;
 import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent.RewardedInput;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
 import io.github.ericmedvet.jviz.core.drawer.Drawer.Arrangement;
+import io.github.ericmedvet.jviz.core.plot.TrajectoryPlot.Data.ReductionType;
 import io.github.ericmedvet.jviz.core.plot.image.Configuration;
 import java.io.File;
 import java.io.IOException;
@@ -56,6 +59,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -65,7 +69,7 @@ public class Main {
 
   public static void freeFormNavigation() {
     NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    @SuppressWarnings("unchecked") SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?> task = (SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?>) nb
+    @SuppressWarnings("unchecked") SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, ?> task = (SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, ?>) nb
         .build(
             """
                 ds.srlat.fromNumericalEnvironment(
@@ -101,11 +105,12 @@ public class Main {
     // navigation();
     // testMlp();
     // pointNavigation();
+    // pointNavVisual();
     // hebbianNavigation();
     // testHebbian();
     // freeFormNavigation();
     // manualNavigation();
-    //rlNavigation();
+    // rlNavigation();
     sequentialXor();
   }
 
@@ -131,7 +136,7 @@ public class Main {
             "ds.num.hebbianMlp(innerLayers = [16]; learningRate = 0.02; weightInitializationType = params; parametrizationType = synapse)"
         )).apply(environment.exampleAgent());
     hmlp.randomize(new Random(2), DoubleRange.SYMMETRIC_UNIT);
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
+    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], ?, NavigationEnvironment.State> task = SingleAgentTask
         .fromEnvironment(() -> environment, s -> false, true);
     Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> outcome = task.simulate(
         hmlp,
@@ -157,7 +162,7 @@ public class Main {
 
   public static void sequentialXor() {
     NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    @SuppressWarnings("unchecked") SequentialXor sim = (SequentialXor) nb
+    @SuppressWarnings("unchecked") SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, SequentialXor.State> sim = (SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, SequentialXor.State>) nb
         .build(
             """
                 ds.s.sequentialXor(
@@ -165,15 +170,34 @@ public class Main {
                 )
                 """
         );
-    @SuppressWarnings("unchecked") NumericalReinforcementLearningAgent<?> agent = ((Function<NumericalReinforcementLearningAgent<?>, NumericalReinforcementLearningAgent<?>>) nb
+    @SuppressWarnings("unchecked") NumericalReinforcementLearningAgent<?> lac = ((Function<NumericalReinforcementLearningAgent<?>, NumericalReinforcementLearningAgent<?>>) nb
         .build(
             """
                 ds.rl.num.linearActorCritic()
                 """
         )).apply(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)));
     SequentialXorDrawer drawer = new SequentialXorDrawer(Configuration.DEFAULT, Set.of(RewardType.LIMITED));
-    Outcome<SequentialXor.Step> outcome = sim.simulate(agent, 1, new DoubleRange(0, 1000));
+    sim.simulate(
+        NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)),
+        1,
+        new DoubleRange(0, 100)
+    );
+
+    Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>> outcome = sim
+        .simulate(lac, 1, new DoubleRange(0, 1000));
+    @SuppressWarnings("unchecked") Function<NumericalReinforcementLearningAgent<?>, SortedMap<Double, double[]>> trajF = (Function<NumericalReinforcementLearningAgent<?>, SortedMap<Double, double[]>>) nb
+        .build(
+            """
+                ds.f.numStateTrajectory(
+                  stateF = ds.f.params();
+                  sat = ds.s.sequentialXor(cases = 100 * ["01"]; resetAgent = true);
+                  dT = 1;
+                  tRange = m.range(min = 0; max = 100)
+                )
+                """
+        );
     drawer.show(outcome);
+    new VectorialTrajectoryDrawer(Configuration.DEFAULT, ReductionType.TSNE).show(trajF.apply(lac));
   }
 
   public static void manualNavigation() {
@@ -203,7 +227,7 @@ public class Main {
         .build("ds.e.n.avgGapToObstacle()");
     @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, Double> collapsedSTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
         .build("ds.e.n.symbolicTrajectory(collapse = true)");
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
+    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], ?, NavigationEnvironment.State> task = SingleAgentTask
         .fromEnvironment(() -> environment, s -> false, true);
     Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> outcome = task.simulate(
         agent,
@@ -242,7 +266,7 @@ public class Main {
     LinearCombination linear = new LinearCombination(mlp.nOfInputs(), mlp.nOfOutputs(), false);
     linear.randomize(new Random(2), DoubleRange.SYMMETRIC_UNIT);
     NumericalDynamicalSystem<?> agent = linear;
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
+    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], ?, NavigationEnvironment.State> task = SingleAgentTask
         .fromEnvironment(() -> environment, s -> false, true);
     Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> outcome = task.simulate(
         agent,
@@ -250,7 +274,7 @@ public class Main {
         new DoubleRange(0, 30)
     );
     NavigationDrawer d = new NavigationDrawer(NavigationDrawer.Configuration.DEFAULT);
-    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], State>>, Double> fitness = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
+    @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, Double> fitness = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
         .build("ds.e.n.arenaCoverage()");
     @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, String> sTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, String>) nb
         .build("ds.e.n.symbolicTrajectory()");
@@ -276,15 +300,16 @@ public class Main {
     String genotype = "rO0ABXNyABNqYXZhLnV0aWwuQXJyYXlMaXN0eIHSHZnHYZ0DAAFJAARzaXpleHAAAAAWdwQAAAAWc3IAEGphdmEubGFuZy5Eb3VibGWAs8JKKWv7BAIAAUQABXZhbHVleHIAEGphdmEubGFuZy5OdW1iZXKGrJUdC5TgiwIAAHhwP+HfAxn4soBzcQB+AAI/5/cWGhuXynNxAH4AAr/VPpwJHdyAc3EAfgACv8jBAcrQY6BzcQB+AAK/5cwX9vm3MnNxAH4AAj/desmMrqzYc3EAfgACv8/9cWhZJnhzcQB+AAK/z1669BZtQHNxAH4AAj+/BbKVlmMwc3EAfgACv+biExNRExBzcQB+AAI/2NINXFEfoHNxAH4AAr/n8MgDN+0Mc3EAfgACP8gJ2fyu00hzcQB+AAK/7FiZq3ZpsHNxAH4AAr/sodjxwbdqc3EAfgACP8oN6i+X/JhzcQB+AAK/zzJxehFIqHNxAH4AAr/mXy4s9PQic3EAfgACP4xC3kyxYYBzcQB+AAI/4yais6r7EHNxAH4AAj/YYcjqIOGgc3EAfgACP+HNfeh3wOZ4";
     Function<String, Object> decoder = (Function<String, Object>) nb.build("f.fromBase64()");
     List<Double> actualGenotype = (List<Double>) decoder.apply(genotype);
-    PointNavigationEnvironment environment = (PointNavigationEnvironment) nb.build(
-        "ds.e.pointNavigation(arena = E_MAZE;initialRobotXRange = m.range(min = 0.5; max = 0.55);" + "initialRobotYRange = m.range(min = 0.75; max = 0.75);robotMaxV = 0.05)"
-    );
+    Environment<double[], double[], PointNavigationEnvironment.State, NumericalDynamicalSystem<?>> environment = (Environment<double[], double[], PointNavigationEnvironment.State, NumericalDynamicalSystem<?>>) nb
+        .build(
+            "ds.e.pointNavigation(arena = ds.arena.prepared(name = e_maze);initialRobotXRange = m.range(min = 0.5; max = 0.55);" + "initialRobotYRange = m.range(min = 0.75; max = 0.75);robotMaxV = 0.05)"
+        );
     MultiLayerPerceptron mlp = ((Function<NumericalDynamicalSystem<?>, MultiLayerPerceptron>) nb.build(
         "ds.num.mlp(innerLayerRatio = 2.0)"
     ))
         .apply(environment.exampleAgent());
     mlp.setParams(actualGenotype.stream().mapToDouble(d -> d).toArray());
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], PointNavigationEnvironment.State> task = SingleAgentTask
+    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], ?, PointNavigationEnvironment.State> task = SingleAgentTask
         .fromEnvironment(
             () -> environment,
             s -> s.robotPosition().distance(s.targetPosition()) < .01,
@@ -299,16 +324,19 @@ public class Main {
     Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>>, Double> fitness = (Function<Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>>, Double>) nb
         .build("ds.e.n.finalTimePlusD()");
     System.out.println(fitness.apply(outcome));
-    /*VectorFieldDrawer vfd =
-    new VectorFieldDrawer(Arena.Prepared.E_MAZE.arena(), VectorFieldDrawer.Configuration.DEFAULT);
-    vfd.show(new ImageBuilder.ImageInfo(500, 500), mlp);*/
+    VectorFieldDrawer vfd = new VectorFieldDrawer(
+        Arena.Prepared.E_MAZE.arena(),
+        VectorFieldDrawer.Configuration.DEFAULT
+    );
+    vfd.show(mlp);
   }
 
   public static void pointNavigation() {
     NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    PointNavigationEnvironment environment = (PointNavigationEnvironment) nb.build(
-        "ds.e.pointNavigation(arena = E_MAZE)"
-    );
+    Environment<double[], double[], PointNavigationEnvironment.State, NumericalDynamicalSystem<?>> environment = (Environment<double[], double[], PointNavigationEnvironment.State, NumericalDynamicalSystem<?>>) nb
+        .build(
+            "ds.e.pointNavigation(arena = ds.arena.prepared(name = e_maze))"
+        );
     @SuppressWarnings("unchecked") MultiLayerPerceptron mlp = ((Function<NumericalDynamicalSystem<?>, MultiLayerPerceptron>) nb
         .build(
             "ds.num.mlp()"
@@ -319,8 +347,8 @@ public class Main {
         Arena.Prepared.E_MAZE.arena(),
         VectorFieldDrawer.Configuration.DEFAULT
     );
-    vfd.show(new Drawer.ImageInfo(500, 500), mlp);
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], PointNavigationEnvironment.State> task = SingleAgentTask
+    vfd.show(mlp);
+    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], ?, PointNavigationEnvironment.State> task = SingleAgentTask
         .fromEnvironment(() -> environment, s -> false, true);
     Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>> outcome = task
         .simulate(mlp, 0.1, new DoubleRange(0, 10));
@@ -331,7 +359,7 @@ public class Main {
 
   public static void rlNavigation() {
     NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    @SuppressWarnings("unchecked") SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], NavigationEnvironment.State> rlTask = (SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], NavigationEnvironment.State>) nb
+    @SuppressWarnings("unchecked") SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, NavigationEnvironment.State> rlTask = (SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, NavigationEnvironment.State>) nb
         .build(
             """
                 ds.srlat.fromNumericalEnvironment(
@@ -367,12 +395,12 @@ public class Main {
         .build("ds.e.n.avgGapToObstacle()");
     @SuppressWarnings("unchecked") FormattedNamedFunction<Outcome<Step<double[], double[], NavigationEnvironment.State>>, Double> collapsedSTraj = (FormattedNamedFunction<Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>, Double>) nb
         .build("ds.e.n.symbolicTrajectory(collapse = true)");
-    Simulation.Outcome<Step<RewardedInput<double[]>, double[], State>> outcome = rlTask.simulate(
+    Simulation.Outcome<Step<RewardedInput<double[]>, double[], NavigationEnvironment.State>> outcome = rlTask.simulate(
         NumericalReinforcementLearningAgent.from(agent),
         0.1,
         new DoubleRange(0, 30)
     );
-    Outcome<Step<double[], double[], State>> sOutcome = Outcome.of(
+    Outcome<Step<double[], double[], NavigationEnvironment.State>> sOutcome = Outcome.of(
         new TreeMap<>(
             outcome.snapshots()
                 .entrySet()
@@ -417,7 +445,7 @@ public class Main {
         .build(
             "ds.num.hebbianMlp(innerLayers = [8]; weightInitializationType = zeros)"
         )).apply(environment.exampleAgent());
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
+    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], ?, NavigationEnvironment.State> task = SingleAgentTask
         .fromEnvironment(() -> environment, s -> false, true);
     int runs = 10;
     for (int r = 0; r < runs; r++) {
@@ -445,7 +473,7 @@ public class Main {
         .build(
             "ds.num.mlp(innerLayers = [8])"
         )).apply(environment.exampleAgent());
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], NavigationEnvironment.State> task = SingleAgentTask
+    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], ?, NavigationEnvironment.State> task = SingleAgentTask
         .fromEnvironment(() -> environment, s -> false, true);
     int runs = 10;
     for (int r = 0; r < runs; r++) {

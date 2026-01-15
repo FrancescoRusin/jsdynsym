@@ -38,7 +38,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 @Discoverable(prefixTemplate = "rl")
-public record Run<C extends ReinforcementLearningAgent<O, A, AS>, O, A, AS, T extends SingleRLAgentTask<C, O, A, TS>, TS>(
+public record Run<C extends ReinforcementLearningAgent<O, A, AS>, O, A, AS, T extends SingleRLAgentTask<C, O, A, AS, TS>, TS>(
     @Param(value = "", injection = Param.Injection.INDEX) int index,
     @Param(value = "name", dS = "") String name,
     @Param("agent") Function<? super C, ? extends C> agentSupplier,

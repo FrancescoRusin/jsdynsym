@@ -26,14 +26,6 @@ import io.github.ericmedvet.jsdynsym.core.DynamicalSystem;
 
 public interface NumericalDynamicalSystem<S> extends DynamicalSystem<double[], double[], S> {
 
-  interface Composed<S> extends NumericalDynamicalSystem<S>, io.github.ericmedvet.jnb.datastructure.Composed<NumericalDynamicalSystem<S>> {
-
-  }
-
-  int nOfInputs();
-
-  int nOfOutputs();
-
   static <S1> NumericalDynamicalSystem<S1> from(
       DynamicalSystem<double[], double[], S1> inner,
       int nOfInputs,
@@ -44,16 +36,6 @@ public interface NumericalDynamicalSystem<S> extends DynamicalSystem<double[], d
         @Override
         public S1 getState() {
           return inner.getState();
-        }
-
-        @Override
-        public void reset() {
-          inner.reset();
-        }
-
-        @Override
-        public double[] step(double t, double[] input) {
-          return inner.step(t, input);
         }
 
         @Override
@@ -73,6 +55,16 @@ public interface NumericalDynamicalSystem<S> extends DynamicalSystem<double[], d
         }
 
         @Override
+        public void reset() {
+          inner.reset();
+        }
+
+        @Override
+        public double[] step(double t, double[] input) {
+          return inner.step(t, input);
+        }
+
+        @Override
         public String toString() {
           return inner.toString();
         }
@@ -82,16 +74,6 @@ public interface NumericalDynamicalSystem<S> extends DynamicalSystem<double[], d
       @Override
       public S1 getState() {
         return inner.getState();
-      }
-
-      @Override
-      public void reset() {
-        inner.reset();
-      }
-
-      @Override
-      public double[] step(double t, double[] input) {
-        return inner.step(t, input);
       }
 
       @Override
@@ -105,23 +87,57 @@ public interface NumericalDynamicalSystem<S> extends DynamicalSystem<double[], d
       }
 
       @Override
+      public void reset() {
+        inner.reset();
+      }
+
+      @Override
+      public double[] step(double t, double[] input) {
+        return inner.step(t, input);
+      }
+
+      @Override
       public String toString() {
         return inner.toString();
       }
     };
   }
 
-  default void checkDimension(int nOfInputs, int nOfOutputs) {
-    if (nOfInputs() != nOfInputs) {
-      throw new IllegalArgumentException(
-          "Wrong number of inputs: %d found, %d expected".formatted(nOfInputs(), nOfInputs)
-      );
-    }
-    if (nOfOutputs() != nOfOutputs) {
-      throw new IllegalArgumentException(
-          "Wrong number of outputs: %d found, %d expected".formatted(nOfOutputs(), nOfOutputs)
-      );
-    }
+  static <S1> NumericalDynamicalSystem<S1> from(
+      int nOfInputs,
+      int nOfOutputs
+  ) {
+    return new NumericalDynamicalSystem<S1>() {
+      @Override
+      public S1 getState() {
+        return null;
+      }
+
+      @Override
+      public int nOfInputs() {
+        return nOfInputs;
+      }
+
+      @Override
+      public int nOfOutputs() {
+        return nOfOutputs;
+      }
+
+      @Override
+      public void reset() {
+
+      }
+
+      @Override
+      public double[] step(double t, double[] input) {
+        return new double[nOfOutputs];
+      }
+
+      @Override
+      public String toString() {
+        return "zeros[%d->%d]".formatted(nOfInputs, nOfOutputs);
+      }
+    };
   }
 
   default <S2> NumericalDynamicalSystem<Pair<S, S2>> andThen(
@@ -138,6 +154,11 @@ public interface NumericalDynamicalSystem<S> extends DynamicalSystem<double[], d
     }
     return new NumericalDynamicalSystem<>() {
       @Override
+      public Pair<S, S2> getState() {
+        return new Pair<>(thisNDS.getState(), other.getState());
+      }
+
+      @Override
       public int nOfInputs() {
         return thisNDS.nOfInputs();
       }
@@ -145,11 +166,6 @@ public interface NumericalDynamicalSystem<S> extends DynamicalSystem<double[], d
       @Override
       public int nOfOutputs() {
         return other.nOfOutputs();
-      }
-
-      @Override
-      public Pair<S, S2> getState() {
-        return new Pair<>(thisNDS.getState(), other.getState());
       }
 
       @Override
@@ -169,5 +185,26 @@ public interface NumericalDynamicalSystem<S> extends DynamicalSystem<double[], d
         return thisNDS + NamedFunction.NAME_JOINER + other;
       }
     };
+  }
+
+  default void checkDimension(int nOfInputs, int nOfOutputs) {
+    if (nOfInputs() != nOfInputs) {
+      throw new IllegalArgumentException(
+          "Wrong number of inputs: %d found, %d expected".formatted(nOfInputs(), nOfInputs)
+      );
+    }
+    if (nOfOutputs() != nOfOutputs) {
+      throw new IllegalArgumentException(
+          "Wrong number of outputs: %d found, %d expected".formatted(nOfOutputs(), nOfOutputs)
+      );
+    }
+  }
+
+  int nOfInputs();
+
+  int nOfOutputs();
+
+  interface Composed<S> extends NumericalDynamicalSystem<S>, io.github.ericmedvet.jnb.datastructure.Composed<NumericalDynamicalSystem<S>> {
+
   }
 }

@@ -26,14 +26,13 @@ import io.github.ericmedvet.jsdynsym.control.geometry.Segment;
 import io.github.ericmedvet.jsdynsym.control.geometry.Semiline;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment.Configuration.TargetSensing;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment.State;
-import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.random.RandomGenerator;
 
-public class NavigationEnvironment implements NumericalDynamicalSystem<State>, Environment<double[], double[], State, NumericalDynamicalSystem<?>> {
+public class NavigationEnvironment<CS> implements NumericalDynamicalSystem<State>, Environment<double[], double[], State, NumericalDynamicalSystem<CS>> {
 
   @Override
   public int nOfOutputs() {
@@ -141,8 +140,8 @@ public class NavigationEnvironment implements NumericalDynamicalSystem<State>, E
   }
 
   @Override
-  public NumericalDynamicalSystem<?> exampleAgent() {
-    return MultivariateRealFunction.from(nOfOutputs(), nOfInputs());
+  public NumericalDynamicalSystem<CS> exampleAgent() {
+    return NumericalDynamicalSystem.from(nOfOutputs(), nOfInputs());
   }
 
   @Override

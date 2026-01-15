@@ -21,6 +21,7 @@
 package io.github.ericmedvet.jsdynsym.buildable.util;
 
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
+import io.github.ericmedvet.jnb.datastructure.Listener;
 import io.github.ericmedvet.jsdynsym.control.Environment;
 import io.github.ericmedvet.jsdynsym.control.Simulation;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
@@ -94,9 +95,9 @@ public class Naming {
     };
   }
 
-  public static <C extends DynamicalSystem<O, A, ?>, O, A, S> SingleAgentTask<C, O, A, S> named(
+  public static <C extends DynamicalSystem<O, A, ? extends CS>, O, A, CS, S> SingleAgentTask<C, O, A, CS, S> named(
       String name,
-      SingleAgentTask<C, O, A, S> singleAgentTask
+      SingleAgentTask<C, O, A, CS, S> singleAgentTask
   ) {
     return new SingleAgentTask<>() {
       @Override
@@ -105,8 +106,13 @@ public class Naming {
       }
 
       @Override
-      public Outcome<Step<O, A, S>> simulate(C c, double dT, DoubleRange tRange) {
-        return singleAgentTask.simulate(c, dT, tRange);
+      public Outcome<Step<O, A, S>> simulate(
+          C c,
+          double dT,
+          DoubleRange tRange,
+          Listener<Timed<CS>> agentStateListener
+      ) {
+        return singleAgentTask.simulate(c, dT, tRange, agentStateListener);
       }
 
       @Override
@@ -116,16 +122,17 @@ public class Naming {
     };
   }
 
-  public static <C extends ReinforcementLearningAgent<O, A, ?>, O, A, S> SingleRLAgentTask<C, O, A, S> named(
+  public static <C extends ReinforcementLearningAgent<O, A, ? extends CS>, O, A, CS, S> SingleRLAgentTask<C, O, A, CS, S> named(
       String name,
-      SingleRLAgentTask<C, O, A, S> singleRLAgentTask
+      SingleRLAgentTask<C, O, A, CS, S> singleRLAgentTask
   ) {
     return new SingleRLAgentTask<>() {
       @Override
       public Outcome<Step<RewardedInput<O>, A, S>> simulate(
           C agent,
           double dT,
-          DoubleRange tRange
+          DoubleRange tRange,
+          Listener<Timed<CS>> agentStateListener
       ) {
         return singleRLAgentTask.simulate(agent, dT, tRange);
       }

@@ -25,6 +25,7 @@ import io.github.ericmedvet.jnb.core.Discoverable;
 import io.github.ericmedvet.jnb.core.Param;
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jnb.datastructure.FormattedNamedFunction;
+import io.github.ericmedvet.jnb.datastructure.Parametrized;
 import io.github.ericmedvet.jsdynsym.control.HomogeneousBiSimulation;
 import io.github.ericmedvet.jsdynsym.control.Simulation;
 import io.github.ericmedvet.jsdynsym.control.Simulation.Outcome;
@@ -51,6 +52,24 @@ import java.util.stream.Collectors;
 public class Functions {
 
   private Functions() {
+  }
+
+  @Cacheable
+  public static <X, C extends DynamicalSystem<?, ?, ? extends CS>, CS> FormattedNamedFunction<X, SortedMap<Double, double[]>> agentStateTrajectory(
+      @Param(value = "name", iS = "states.in[{simulation.name}]") String name,
+      @Param(value = "of", dNPM = "f.identity()") Function<X, C> beforeF,
+      @Param("stateF") Function<CS, double[]> stateF,
+      @Param("sat") SingleAgentTask<C, ?, ?, CS, ?> sat,
+      @Param("tRange") DoubleRange tRange,
+      @Param("dT") double dT,
+      @Param(value = "format", dS = "%s") String format
+  ) {
+    Function<C, SortedMap<Double, double[]>> f = c -> {
+      SortedMap<Double, double[]> data = new TreeMap<>();
+      sat.simulate(c, dT, tRange, timed -> data.put(timed.t(), stateF.apply(timed.state())));
+      return data;
+    };
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
   @Cacheable
@@ -127,6 +146,16 @@ public class Functions {
         tRange
     ) : biSimulation
         .simulate(opponent, s, dT, tRange);
+    return FormattedNamedFunction.from(f, format, name).compose(beforeF);
+  }
+
+  @Cacheable
+  public static <X, P> FormattedNamedFunction<X, P> params(
+      @Param(value = "name", iS = "params") String name,
+      @Param(value = "of", dNPM = "f.identity()") Function<X, Parametrized<?, P>> beforeF,
+      @Param(value = "format", dS = "%s") String format
+  ) {
+    Function<Parametrized<?, P>, P> f = Parametrized::getParams;
     return FormattedNamedFunction.from(f, format, name).compose(beforeF);
   }
 
