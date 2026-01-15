@@ -29,7 +29,12 @@ import io.github.ericmedvet.jnb.datastructure.Pair;
 import io.github.ericmedvet.jsdynsym.core.composed.InStepped;
 import io.github.ericmedvet.jsdynsym.core.composed.OutStepped;
 import io.github.ericmedvet.jsdynsym.core.composed.Stepped;
-import io.github.ericmedvet.jsdynsym.core.numerical.*;
+import io.github.ericmedvet.jsdynsym.core.numerical.EnhancedInput;
+import io.github.ericmedvet.jsdynsym.core.numerical.LinearCombination;
+import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
+import io.github.ericmedvet.jsdynsym.core.numerical.Noised;
+import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
+import io.github.ericmedvet.jsdynsym.core.numerical.Sinusoidal;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.DelayedRecurrentNetwork;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.HebbianMultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
@@ -117,8 +122,6 @@ public class NumericalDynamicalSystems {
 
   @Cacheable
   public static Function<NumericalDynamicalSystem<?>, HebbianMultiLayerPerceptron> hebbianMlp(
-      @Param(value = "innerLayerRatio", dD = 0.65) double innerLayerRatio,
-      @Param(value = "nOfInnerLayers", dI = 1) int nOfInnerLayers,
       @Param("innerLayers") List<Integer> innerLayers,
       @Param(value = "learningRate", dD = 0.01) double learningRate,
       @Param(value = "weightsUpdateInterval", dI = 1) int weightsUpdateInterval,
@@ -171,7 +174,7 @@ public class NumericalDynamicalSystems {
   @Cacheable
   public static Function<NumericalDynamicalSystem<?>, MultiLayerPerceptron> mlp(
       @Param(value = "innerLayerRatio", dD = 0.65) double innerLayerRatio,
-      @Param(value = "nOfInnerLayers", dI = 1) int nOfInnerLayers,
+      @Param(value = "nOfInnerLayers", dI = 0) int nOfInnerLayers,
       @Param("innerLayers") List<Integer> innerLayers,
       @Param(value = "activationFunction", dS = "tanh") MultiLayerPerceptron.ActivationFunction activationFunction
   ) {
