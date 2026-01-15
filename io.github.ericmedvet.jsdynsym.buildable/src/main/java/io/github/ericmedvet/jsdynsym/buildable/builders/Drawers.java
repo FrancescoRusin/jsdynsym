@@ -23,10 +23,10 @@ package io.github.ericmedvet.jsdynsym.buildable.builders;
 import io.github.ericmedvet.jnb.core.Cacheable;
 import io.github.ericmedvet.jnb.core.Discoverable;
 import io.github.ericmedvet.jnb.core.Param;
+import io.github.ericmedvet.jsdynsym.control.drawer.VectorFieldDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
-import io.github.ericmedvet.jsdynsym.control.navigation.VectorFieldDrawer;
 import io.github.ericmedvet.jsdynsym.control.pong.PongDrawer;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.RewardType;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXorDrawer;
@@ -107,4 +107,5 @@ public class Drawers {
   public static PongDrawer pong() {
     return new PongDrawer(PongDrawer.Configuration.DEFAULT);
   }
+
 }
