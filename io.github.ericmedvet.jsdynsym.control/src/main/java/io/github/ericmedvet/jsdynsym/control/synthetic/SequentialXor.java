@@ -69,7 +69,7 @@ public class SequentialXor implements Simulation<NumericalReinforcementLearningA
     if (resetAgent) {
       agent.reset();
     }
-    for (double t = tRange.min(); t <= tRange.max(); t += dT) {
+    for (double t = tRange.min(); t < tRange.max(); t += dT) {
       double[] inputs = cases.get(c++ % cases.size());
       double output = agent.step(t, inputs, reward)[0];
       double gtOutput = ((inputs[0] > 0) ^ (inputs[1] > 0)) ? 1 : -1;
