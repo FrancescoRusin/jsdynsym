@@ -36,6 +36,9 @@ import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment.St
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment;
 import io.github.ericmedvet.jsdynsym.control.navigation.VectorFieldDrawer;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.RewardType;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXorDrawer;
 import io.github.ericmedvet.jsdynsym.core.numerical.LinearCombination;
 import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
@@ -46,11 +49,13 @@ import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent
 import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent.RewardedInput;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
 import io.github.ericmedvet.jviz.core.drawer.Drawer.Arrangement;
+import io.github.ericmedvet.jviz.core.plot.image.Configuration;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -90,6 +95,18 @@ public class Main {
       long elapsedNanos = System.nanoTime() - startTime;
       System.out.printf("%.2f%n", elapsedNanos / 1e9);
     }
+  }
+
+  public static void main(String[] args) throws IOException {
+    // navigation();
+    // testMlp();
+    // pointNavigation();
+    // hebbianNavigation();
+    // testHebbian();
+    // freeFormNavigation();
+    // manualNavigation();
+    //rlNavigation();
+    sequentialXor();
   }
 
   public static void hebbianNavigation() {
@@ -138,15 +155,25 @@ public class Main {
         );
   }
 
-  public static void main(String[] args) throws IOException {
-    // navigation();
-    // testMlp();
-    // pointNavigation();
-    // hebbianNavigation();
-    // testHebbian();
-    // freeFormNavigation();
-    // manualNavigation();
-    rlNavigation();
+  public static void sequentialXor() {
+    NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
+    @SuppressWarnings("unchecked") SequentialXor sim = (SequentialXor) nb
+        .build(
+            """
+                ds.s.sequentialXor(
+                  cases = 10 * ["00"] + 10 * ["01"] + 10 * ["10"] + 0 * ["11"]
+                )
+                """
+        );
+    @SuppressWarnings("unchecked") NumericalReinforcementLearningAgent<?> agent = ((Function<NumericalReinforcementLearningAgent<?>, NumericalReinforcementLearningAgent<?>>) nb
+        .build(
+            """
+                ds.rl.num.linearActorCritic()
+                """
+        )).apply(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)));
+    SequentialXorDrawer drawer = new SequentialXorDrawer(Configuration.DEFAULT, Set.of(RewardType.LIMITED));
+    Outcome<SequentialXor.Step> outcome = sim.simulate(agent, 1, new DoubleRange(0, 1000));
+    drawer.show(outcome);
   }
 
   public static void manualNavigation() {

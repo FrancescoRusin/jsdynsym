@@ -23,35 +23,46 @@ import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jsdynsym.control.Simulation;
 import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-public class SequantialXor implements Simulation<NumericalReinforcementLearningAgent<?>, SequantialXor.Step, Simulation.Outcome<SequantialXor.Step>> {
+public class SequentialXor implements Simulation<NumericalReinforcementLearningAgent<?>, SequentialXor.Step, Simulation.Outcome<SequentialXor.Step>> {
+
   private final List<double[]> cases;
   private final RewardType rewardType;
   private final boolean resetAgent;
 
-  public SequantialXor(List<double[]> cases, RewardType rewardType, boolean resetAgent) {
+  public SequentialXor(List<double[]> cases, RewardType rewardType, boolean resetAgent) {
     this.cases = cases;
     this.rewardType = rewardType;
     this.resetAgent = resetAgent;
-  }
-
-  @Override
-  public Optional<NumericalReinforcementLearningAgent<?>> example() {
-    return Optional.of(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)));
   }
 
   public static double computeError(double output, double gtOutput, RewardType rewardType) {
     return switch (rewardType) {
       case BOOLEAN -> (output * gtOutput > 0) ? 1d : -1d;
       case UNLIMITED -> gtOutput * output;
-      case LIMITED -> Math.max(gtOutput * output, 1);
+      case LIMITED -> (gtOutput > 0) ? Math.min(1, output) : Math.min(1, -output);
     };
   }
 
   @Override
-  public Outcome<Step> simulate(NumericalReinforcementLearningAgent<?> agent, double dT, DoubleRange tRange) {
+  public Optional<NumericalReinforcementLearningAgent<?>> example() {
+    return Optional.of(
+        NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1))
+    );
+  }
+
+  @Override
+  public Outcome<Step> simulate(
+      NumericalReinforcementLearningAgent<?> agent,
+      double dT,
+      DoubleRange tRange
+  ) {
     SortedMap<Double, Step> steps = new TreeMap<>();
     int c = 0;
     double reward = 0;
@@ -78,6 +89,7 @@ public class SequantialXor implements Simulation<NumericalReinforcementLearningA
   }
 
   public record Step(double[] inputs, double output, double groundTruthOutput, double reward) {
+
     public String stringInputs() {
       return Arrays.stream(inputs).mapToObj(i -> (i < 0) ? "0" : "1").collect(Collectors.joining());
     }

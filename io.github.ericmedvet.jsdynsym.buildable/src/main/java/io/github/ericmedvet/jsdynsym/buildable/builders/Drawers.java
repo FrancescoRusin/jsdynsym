@@ -28,6 +28,11 @@ import io.github.ericmedvet.jsdynsym.control.navigation.NavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.VectorFieldDrawer;
 import io.github.ericmedvet.jsdynsym.control.pong.PongDrawer;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.RewardType;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXorDrawer;
+import io.github.ericmedvet.jviz.core.plot.image.Configuration;
+import java.util.LinkedHashSet;
+import java.util.List;
 
 @Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.drawer|d")
 public class Drawers {
@@ -35,7 +40,6 @@ public class Drawers {
   private Drawers() {
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static NavigationDrawer navigation(
       @Param(value = "ioType", dS = "graphic") NavigationDrawer.Configuration.IOType ioType,
@@ -63,7 +67,6 @@ public class Drawers {
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static PointNavigationDrawer pointNavigation(
       @Param(value = "ioType", dS = "graphic") NavigationDrawer.Configuration.IOType ioType
@@ -85,7 +88,14 @@ public class Drawers {
     );
   }
 
-  @SuppressWarnings("unused")
+  @Cacheable
+  public static SequentialXorDrawer sequentialXor(
+      @Param(value = "configuration", dNPM = "viz.plot.configuration.image()") Configuration configuration,
+      @Param("rewardTypes") List<RewardType> rewardTypes
+  ) {
+    return new SequentialXorDrawer(configuration, new LinkedHashSet<>(rewardTypes));
+  }
+
   @Cacheable
   public static VectorFieldDrawer vectorField(
       @Param(value = "arena", dNPM = "empty") Arena.Prepared arena
@@ -93,7 +103,6 @@ public class Drawers {
     return new VectorFieldDrawer(arena.arena(), VectorFieldDrawer.Configuration.DEFAULT);
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
   public static PongDrawer pong() {
     return new PongDrawer(PongDrawer.Configuration.DEFAULT);
