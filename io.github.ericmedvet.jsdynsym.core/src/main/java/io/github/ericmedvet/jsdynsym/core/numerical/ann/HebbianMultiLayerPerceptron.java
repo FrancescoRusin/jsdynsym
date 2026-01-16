@@ -372,6 +372,16 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
   public record State(
       double[][][] weights,
       double[][] activations
-  ) {
+  ) implements NumericalParametrized<State> {
+
+    @Override
+    public double[] getParams() {
+      return MultiLayerPerceptron.flat(weights);
+    }
+
+    @Override
+    public void setParams(double[] param) {
+      throw new UnsupportedOperationException("Params cannot be set this way");
+    }
   }
 }

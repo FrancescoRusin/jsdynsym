@@ -20,13 +20,18 @@
 package io.github.ericmedvet.jsdynsym.core.rl;
 
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
+import io.github.ericmedvet.jnb.datastructure.NumericalParametrized;
 import io.github.ericmedvet.jnb.datastructure.Parametrized;
 import io.github.ericmedvet.jsdynsym.core.numerical.FrozenableNumericalDynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalStatelessSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.HebbianMultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.numerical.named.NamedUnivariateRealFunction;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.random.RandomGenerator;
 import java.util.stream.Collectors;
 
@@ -396,7 +401,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
       double[] rewardsHistory,
       double[][] layersHistory,
       double[] networkHistory
-  ) {
+  ) implements NumericalParametrized<State> {
     public State update(double[][] newActivations, double reward) {
       int nOfNeurons = 0;
       int historyIndex = (int) (age % rewardsHistory.length);
@@ -426,6 +431,16 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
         }
       }
       return activations;
+    }
+
+    @Override
+    public double[] getParams() {
+      return MultiLayerPerceptron.flat(weights);
+    }
+
+    @Override
+    public void setParams(double[] param) {
+      throw new UnsupportedOperationException("Params cannot be set this way");
     }
   }
 }

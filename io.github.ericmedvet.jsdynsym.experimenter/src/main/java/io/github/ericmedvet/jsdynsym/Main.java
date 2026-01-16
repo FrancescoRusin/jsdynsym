@@ -160,44 +160,30 @@ public class Main {
         );
   }
 
-  public static void sequentialXor() {
+  public static void pointNavigation() {
     NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    @SuppressWarnings("unchecked") SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, SequentialXor.State> sim = (SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, SequentialXor.State>) nb
+    @SuppressWarnings("unchecked") Environment<double[], double[], PointNavigationEnvironment.State, NumericalDynamicalSystem<?>> environment = (Environment<double[], double[], PointNavigationEnvironment.State, NumericalDynamicalSystem<?>>) nb
         .build(
-            """
-                ds.s.sequentialXor(
-                  cases = 10 * ["00"] + 10 * ["01"] + 10 * ["10"] + 0 * ["11"]
-                )
-                """
+            "ds.e.pointNavigation(arena = ds.arena.prepared(name = e_maze))"
         );
-    @SuppressWarnings("unchecked") NumericalReinforcementLearningAgent<?> lac = ((Function<NumericalReinforcementLearningAgent<?>, NumericalReinforcementLearningAgent<?>>) nb
+    @SuppressWarnings("unchecked") MultiLayerPerceptron mlp = ((Function<NumericalDynamicalSystem<?>, MultiLayerPerceptron>) nb
         .build(
-            """
-                ds.rl.num.linearActorCritic()
-                """
-        )).apply(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)));
-    SequentialXorDrawer drawer = new SequentialXorDrawer(Configuration.DEFAULT, Set.of(RewardType.LIMITED));
-    sim.simulate(
-        NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)),
-        1,
-        new DoubleRange(0, 100)
+            "ds.num.mlp()"
+        ))
+        .apply(environment.exampleAgent());
+    mlp.randomize(new Random(), DoubleRange.SYMMETRIC_UNIT);
+    VectorFieldDrawer vfd = new VectorFieldDrawer(
+        Arena.Prepared.E_MAZE.arena(),
+        VectorFieldDrawer.Configuration.DEFAULT
     );
-
-    Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>> outcome = sim
-        .simulate(lac, 1, new DoubleRange(0, 1000));
-    @SuppressWarnings("unchecked") Function<NumericalReinforcementLearningAgent<?>, SortedMap<Double, double[]>> trajF = (Function<NumericalReinforcementLearningAgent<?>, SortedMap<Double, double[]>>) nb
-        .build(
-            """
-                ds.f.numStateTrajectory(
-                  stateF = ds.f.params();
-                  sat = ds.s.sequentialXor(cases = 100 * ["01"]; resetAgent = true);
-                  dT = 1;
-                  tRange = m.range(min = 0; max = 100)
-                )
-                """
-        );
-    drawer.show(outcome);
-    new VectorialTrajectoryDrawer(Configuration.DEFAULT, ReductionType.TSNE).show(trajF.apply(lac));
+    vfd.show(mlp);
+    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], ?, PointNavigationEnvironment.State> task = SingleAgentTask
+        .fromEnvironment(() -> environment, s -> false, true);
+    Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>> outcome = task
+        .simulate(mlp, 0.1, new DoubleRange(0, 10));
+    new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT)
+        .videoBuilder()
+        .save(new File("../point-navigation.mp4"), outcome);
   }
 
   public static void manualNavigation() {
@@ -331,30 +317,44 @@ public class Main {
     vfd.show(mlp);
   }
 
-  public static void pointNavigation() {
+  public static void sequentialXor() {
     NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    Environment<double[], double[], PointNavigationEnvironment.State, NumericalDynamicalSystem<?>> environment = (Environment<double[], double[], PointNavigationEnvironment.State, NumericalDynamicalSystem<?>>) nb
+    @SuppressWarnings("unchecked") SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, SequentialXor.State> sim = (SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, SequentialXor.State>) nb
         .build(
-            "ds.e.pointNavigation(arena = ds.arena.prepared(name = e_maze))"
+            """
+                ds.s.sequentialXor(
+                  cases = 10 * ["00"] + 10 * ["01"] + 10 * ["10"] + 0 * ["11"]
+                )
+                """
         );
-    @SuppressWarnings("unchecked") MultiLayerPerceptron mlp = ((Function<NumericalDynamicalSystem<?>, MultiLayerPerceptron>) nb
+    @SuppressWarnings("unchecked") NumericalReinforcementLearningAgent<?> lac = ((Function<NumericalReinforcementLearningAgent<?>, NumericalReinforcementLearningAgent<?>>) nb
         .build(
-            "ds.num.mlp()"
-        ))
-        .apply(environment.exampleAgent());
-    mlp.randomize(new Random(), DoubleRange.SYMMETRIC_UNIT);
-    VectorFieldDrawer vfd = new VectorFieldDrawer(
-        Arena.Prepared.E_MAZE.arena(),
-        VectorFieldDrawer.Configuration.DEFAULT
+            """
+                ds.rl.num.linearActorCritic()
+                """
+        )).apply(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)));
+    SequentialXorDrawer drawer = new SequentialXorDrawer(Configuration.DEFAULT, Set.of(RewardType.LIMITED));
+    sim.simulate(
+        NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)),
+        1,
+        new DoubleRange(0, 100)
     );
-    vfd.show(mlp);
-    SingleAgentTask<NumericalDynamicalSystem<?>, double[], double[], ?, PointNavigationEnvironment.State> task = SingleAgentTask
-        .fromEnvironment(() -> environment, s -> false, true);
-    Simulation.Outcome<SingleAgentTask.Step<double[], double[], PointNavigationEnvironment.State>> outcome = task
-        .simulate(mlp, 0.1, new DoubleRange(0, 10));
-    new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT)
-        .videoBuilder()
-        .save(new File("../point-navigation.mp4"), outcome);
+
+    Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>> outcome = sim
+        .simulate(lac, 1, new DoubleRange(0, 1000));
+    @SuppressWarnings("unchecked") Function<NumericalReinforcementLearningAgent<?>, SortedMap<Double, double[]>> trajF = (Function<NumericalReinforcementLearningAgent<?>, SortedMap<Double, double[]>>) nb
+        .build(
+            """
+                ds.f.agentStateTrajectory(
+                  stateF = ds.f.params();
+                  sat = ds.s.sequentialXor(cases = 100 * ["01"]; resetAgent = true);
+                  dT = 1;
+                  tRange = m.range(min = 0; max = 100)
+                )
+                """
+        );
+    drawer.show(outcome);
+    new VectorialTrajectoryDrawer(Configuration.DEFAULT, ReductionType.TSNE).show(trajF.apply(lac));
   }
 
   public static void rlNavigation() {
