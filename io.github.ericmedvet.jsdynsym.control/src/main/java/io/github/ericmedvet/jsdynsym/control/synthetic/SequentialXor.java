@@ -20,9 +20,14 @@
 package io.github.ericmedvet.jsdynsym.control.synthetic;
 
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
-import io.github.ericmedvet.jsdynsym.control.Simulation;
-import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
+import io.github.ericmedvet.jnb.datastructure.Listener;
+import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
+import io.github.ericmedvet.jsdynsym.control.SingleRLAgentTask;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.State;
+import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent;
+import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent;
+import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent.RewardedInput;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +35,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-public class SequentialXor implements Simulation<NumericalReinforcementLearningAgent<?>, SequentialXor.Step, Simulation.Outcome<SequentialXor.Step>> {
+public class SequentialXor<CS> implements SingleRLAgentTask<NumericalReinforcementLearningAgent<? extends CS>, double[], double[], CS, State> {
 
   private final List<double[]> cases;
   private final RewardType rewardType;
@@ -51,19 +56,20 @@ public class SequentialXor implements Simulation<NumericalReinforcementLearningA
   }
 
   @Override
-  public Optional<NumericalReinforcementLearningAgent<?>> example() {
+  public Optional<NumericalReinforcementLearningAgent<? extends CS>> example() {
     return Optional.of(
-        NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1))
+        NumericalReinforcementLearningAgent.from(NumericalDynamicalSystem.from(2, 1))
     );
   }
 
   @Override
-  public Outcome<Step> simulate(
-      NumericalReinforcementLearningAgent<?> agent,
+  public Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>> simulate(
+      NumericalReinforcementLearningAgent<? extends CS> agent,
       double dT,
-      DoubleRange tRange
+      DoubleRange tRange,
+      Listener<Timed<CS>> agentStateListener
   ) {
-    SortedMap<Double, Step> steps = new TreeMap<>();
+    SortedMap<Double, SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>> states = new TreeMap<>();
     int c = 0;
     double reward = 0;
     if (resetAgent) {
@@ -71,12 +77,22 @@ public class SequentialXor implements Simulation<NumericalReinforcementLearningA
     }
     for (double t = tRange.min(); t < tRange.max(); t += dT) {
       double[] inputs = cases.get(c++ % cases.size());
-      double output = agent.step(t, inputs, reward)[0];
+      double[] outputs = agent.step(t, inputs, reward);
+      agentStateListener.listen(new Timed<>(t, agent.getState()));
+      double output = outputs[0];
       double gtOutput = ((inputs[0] > 0) ^ (inputs[1] > 0)) ? 1 : -1;
       reward = computeError(output, gtOutput, rewardType);
-      steps.put(t, new Step(inputs, output, gtOutput, reward));
+      states.put(
+          t,
+          new SingleAgentTask.Step<>(
+              new RewardedInput<>(inputs, reward),
+              outputs,
+              new State(output, gtOutput)
+          )
+      );
     }
-    return Outcome.of(steps);
+    agentStateListener.done();
+    return Outcome.of(states);
   }
 
   @Override
@@ -88,10 +104,11 @@ public class SequentialXor implements Simulation<NumericalReinforcementLearningA
     BOOLEAN, LIMITED, UNLIMITED
   }
 
-  public record Step(double[] inputs, double output, double groundTruthOutput, double reward) {
+  public static String stringInputs(double[] inputs) {
+    return Arrays.stream(inputs).mapToObj(i -> (i < 0) ? "0" : "1").collect(Collectors.joining());
+  }
 
-    public String stringInputs() {
-      return Arrays.stream(inputs).mapToObj(i -> (i < 0) ? "0" : "1").collect(Collectors.joining());
-    }
+  public record State(double output, double groundTruthOutput) {
+
   }
 }

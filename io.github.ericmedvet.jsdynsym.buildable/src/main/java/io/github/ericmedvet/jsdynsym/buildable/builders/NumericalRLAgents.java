@@ -49,7 +49,7 @@ public class NumericalRLAgents {
       @Param(value = "activationFunction", dS = "tanh") MultiLayerPerceptron.ActivationFunction activationFunction,
       @Param(value = "historyLength", dI = 10) int historyLength,
       @Param(value = "weightsUpdateInterval", dI = 1) int weightsUpdateInterval,
-      @Param(value = "initialWeightRange", dNPM = "m.range(min=-0.1;max=0.1)") DoubleRange initialWeightRange,
+      @Param(value = "initialWeightRange", dNPM = "m.range(min=-0.01;max=0.01)") DoubleRange initialWeightRange,
       @Param(value = "randomGenerator", dNPM = "m.defaultRG()") RandomGenerator randomGenerator,
       @Param(value = "weightInitializationType", dS = "random") HebbianMultiLayerPerceptron.WeightInitializationType weightInitializationType
   ) {

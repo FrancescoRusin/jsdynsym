@@ -24,12 +24,11 @@ import io.github.ericmedvet.jsdynsym.control.Environment;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.geometry.Segment;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment.State;
-import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
 import java.util.List;
 import java.util.random.RandomGenerator;
 
-public class PointNavigationEnvironment implements NumericalDynamicalSystem<State>, Environment<double[], double[], State, NumericalDynamicalSystem<?>> {
+public class PointNavigationEnvironment<CS> implements NumericalDynamicalSystem<State>, Environment<double[], double[], State, NumericalDynamicalSystem<CS>> {
 
   public record Configuration(
       double robotMaxV,
@@ -60,8 +59,8 @@ public class PointNavigationEnvironment implements NumericalDynamicalSystem<Stat
   }
 
   @Override
-  public NumericalDynamicalSystem<?> exampleAgent() {
-    return MultivariateRealFunction.from(o -> new double[nOfInputs()], nOfOutputs(), nOfInputs());
+  public NumericalDynamicalSystem<CS> exampleAgent() {
+    return NumericalDynamicalSystem.from(nOfOutputs(), nOfInputs());
   }
 
   @Override

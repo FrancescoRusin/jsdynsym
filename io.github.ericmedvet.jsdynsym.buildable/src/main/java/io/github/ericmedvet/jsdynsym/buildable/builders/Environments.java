@@ -57,9 +57,9 @@ public class Environments {
   ) {
     return new PongEnvironment(
         new PongEnvironment.Configuration(
-            racketsInitialYRange, //
-            racketsLength, //
-            racketsMaxDeltaPosition, //
+            racketsInitialYRange,
+            racketsLength,
+            racketsMaxDeltaPosition,
             ballInitialVelocity,
             ballMaxVelocity,
             ballInitialAngleRange,
@@ -74,7 +74,7 @@ public class Environments {
   }
 
   @SuppressWarnings("unused")
-  public static Environment<double[], double[], State, NumericalDynamicalSystem<?>> navigation(
+  public static <CS> Environment<double[], double[], State, NumericalDynamicalSystem<CS>> navigation(
       @Param(value = "name", iS = "nav-{arena.name}") String name,
       @Param(value = "initialRobotDirectionRange", dNPM = "m.range(min=0;max=0)") DoubleRange initialRobotDirectionRange,
       @Param(value = "robotRadius", dD = 0.05) double robotRadius,
@@ -90,7 +90,7 @@ public class Environments {
   ) {
     return Naming.named(
         name,
-        new NavigationEnvironment(
+        new NavigationEnvironment<>(
             new NavigationEnvironment.Configuration(
                 initialRobotDirectionRange,
                 robotRadius,
@@ -108,7 +108,7 @@ public class Environments {
   }
 
   @SuppressWarnings("unused")
-  public static Environment<double[], double[], PointNavigationEnvironment.State, NumericalDynamicalSystem<?>> pointNavigation(
+  public static <CS> Environment<double[], double[], PointNavigationEnvironment.State, NumericalDynamicalSystem<CS>> pointNavigation(
       @Param(value = "name", iS = "nav-{arena}") String name,
       @Param(value = "robotMaxV", dD = 0.01) double robotMaxV,
       @Param(value = "collisionBlock", dD = 0.005) double collisionBlock,
@@ -118,7 +118,7 @@ public class Environments {
   ) {
     return Naming.named(
         name,
-        new PointNavigationEnvironment(
+        new PointNavigationEnvironment<>(
             new PointNavigationEnvironment.Configuration(
                 robotMaxV,
                 collisionBlock,

@@ -33,7 +33,11 @@ public class MultiLayerPerceptron implements MultivariateRealFunction, Numerical
   private final double[][][] weights;
   private final int[] neurons;
 
-  public MultiLayerPerceptron(ActivationFunction activationFunction, double[][][] weights, int[] neurons) {
+  public MultiLayerPerceptron(
+      ActivationFunction activationFunction,
+      double[][][] weights,
+      int[] neurons
+  ) {
     this.activationFunction = activationFunction;
     this.weights = weights;
     this.neurons = neurons;
@@ -77,35 +81,32 @@ public class MultiLayerPerceptron implements MultivariateRealFunction, Numerical
     );
   }
 
-  public enum ActivationFunction implements DoubleUnaryOperator {
-    RELU(x -> (x < 0) ? 0d : x, new DoubleRange(0d, Double.POSITIVE_INFINITY)), SIGMOID(
-        x -> 1d / (1d + Math.exp(-x)),
-        DoubleRange.UNIT
-    ), SIN(Math::sin, DoubleRange.SYMMETRIC_UNIT), TANH(Math::tanh, DoubleRange.SYMMETRIC_UNIT), SIGN(
-        Math::signum,
-        DoubleRange.SYMMETRIC_UNIT
-    ), IDENTITY(x -> x, DoubleRange.UNBOUNDED);
-
-    private final DoubleUnaryOperator f;
-    private final DoubleRange domain;
-
-    ActivationFunction(DoubleUnaryOperator f, DoubleRange domain) {
-      this.f = f;
-      this.domain = domain;
+  public static double[][] computeActivations(
+      double[] input,
+      double[][][] weights,
+      MultiLayerPerceptron.ActivationFunction activationFunction,
+      double[][] activations
+  ) {
+    if (input.length != activations[0].length) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Expected input length is %d: found %d",
+              activations[0].length,
+              input.length
+          )
+      );
     }
-
-    @Override
-    public double applyAsDouble(double x) {
-      return f.applyAsDouble(x);
+    System.arraycopy(input, 0, activations[0], 0, input.length);
+    for (int i = 1; i < activations.length; i++) {
+      for (int j = 0; j < activations[i].length; j++) {
+        double sum = weights[i - 1][j][0];
+        for (int k = 1; k < activations[i - 1].length + 1; k++) {
+          sum = sum + activations[i - 1][k - 1] * weights[i - 1][j][k];
+        }
+        activations[i][j] = activationFunction.applyAsDouble(sum);
+      }
     }
-
-    public DoubleRange getDomain() {
-      return domain;
-    }
-
-    public DoubleUnaryOperator getF() {
-      return f;
-    }
+    return activations;
   }
 
   public static int[] countNeurons(int nOfInput, int[] innerNeurons, int nOfOutput) {
@@ -143,6 +144,15 @@ public class MultiLayerPerceptron implements MultivariateRealFunction, Numerical
     return flatWeights;
   }
 
+  public static double[] flat(double[][][] unflatWeights) {
+    int[] neurons = new int[unflatWeights.length + 1];
+    neurons[0] = unflatWeights[0][0].length - 1;
+    for (int i = 1; i < neurons.length; i++) {
+      neurons[i] = unflatWeights[i - 1].length;
+    }
+    return flat(unflatWeights, neurons);
+  }
+
   public static double[][][] unflat(double[] flatWeights, int[] neurons) {
     double[][][] unflatWeights = new double[neurons.length - 1][][];
     int c = 0;
@@ -167,28 +177,38 @@ public class MultiLayerPerceptron implements MultivariateRealFunction, Numerical
     return computeActivations(input, weights, activationFunction, activationValues)[neurons.length - 1];
   }
 
-  public static double[][] computeActivations(
-      double[] input,
-      double[][][] weights,
-      MultiLayerPerceptron.ActivationFunction activationFunction,
-      double[][] activations
-  ) {
-    if (input.length != activations[0].length) {
-      throw new IllegalArgumentException(
-          String.format("Expected input length is %d: found %d", activations[0].length, input.length)
-      );
+  public enum ActivationFunction implements DoubleUnaryOperator {
+    RELU(x -> (x < 0) ? 0d : x, new DoubleRange(0d, Double.POSITIVE_INFINITY)), SIGMOID(
+        x -> 1d / (1d + Math.exp(-x)),
+        DoubleRange.UNIT
+    ), SIN(Math::sin, DoubleRange.SYMMETRIC_UNIT), TANH(
+        Math::tanh,
+        DoubleRange.SYMMETRIC_UNIT
+    ), SIGN(
+        Math::signum,
+        DoubleRange.SYMMETRIC_UNIT
+    ), IDENTITY(x -> x, DoubleRange.UNBOUNDED);
+
+    private final DoubleUnaryOperator f;
+    private final DoubleRange domain;
+
+    ActivationFunction(DoubleUnaryOperator f, DoubleRange domain) {
+      this.f = f;
+      this.domain = domain;
     }
-    System.arraycopy(input, 0, activations[0], 0, input.length);
-    for (int i = 1; i < activations.length; i++) {
-      for (int j = 0; j < activations[i].length; j++) {
-        double sum = weights[i - 1][j][0];
-        for (int k = 1; k < activations[i - 1].length + 1; k++) {
-          sum = sum + activations[i - 1][k - 1] * weights[i - 1][j][k];
-        }
-        activations[i][j] = activationFunction.applyAsDouble(sum);
-      }
+
+    @Override
+    public double applyAsDouble(double x) {
+      return f.applyAsDouble(x);
     }
-    return activations;
+
+    public DoubleRange getDomain() {
+      return domain;
+    }
+
+    public DoubleUnaryOperator getF() {
+      return f;
+    }
   }
 
   @Override

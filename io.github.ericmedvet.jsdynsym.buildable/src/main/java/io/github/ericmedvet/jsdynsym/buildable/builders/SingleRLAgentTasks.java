@@ -43,18 +43,18 @@ public class SingleRLAgentTasks {
 
   @SuppressWarnings("unused")
   @Cacheable
-  public static <S> SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], S> fromNumericalEnvironment(
+  public static <CS, ES> SingleRLAgentTask<NumericalReinforcementLearningAgent<? extends CS>, double[], double[], CS, ES> fromNumericalEnvironment(
       @Param(value = "name", iS = "{environment.name}") String name,
-      @Param("environment") Environment<double[], double[], S, NumericalDynamicalSystem<?>> environment,
-      @Param(value = "stopCondition", dNPM = "predicate.not(condition = predicate.always())") Predicate<S> stopCondition,
+      @Param("environment") Environment<double[], double[], ES, NumericalDynamicalSystem<? extends CS>> environment,
+      @Param(value = "stopCondition", dNPM = "predicate.not(condition = predicate.always())") Predicate<ES> stopCondition,
       @Param(value = "resetAgent") boolean resetAgent,
-      @Param("reward") Function<S, Double> rewardFunction,
+      @Param("reward") Function<ES, Double> rewardFunction,
       @Param(value = "", injection = Param.Injection.BUILDER) NamedBuilder<?> nb,
       @Param(value = "", injection = Param.Injection.MAP) ParamMap map
   ) {
-    @SuppressWarnings("unchecked") Supplier<Environment<double[], double[], S, NumericalDynamicalSystem<?>>> supplier = () -> (Environment<double[], double[], S, NumericalDynamicalSystem<?>>) nb
+    @SuppressWarnings("unchecked") Supplier<Environment<double[], double[], ES, NumericalDynamicalSystem<? extends CS>>> supplier = () -> (Environment<double[], double[], ES, NumericalDynamicalSystem<? extends CS>>) nb
         .build((NamedParamMap) map.value("environment", ParamMap.Type.NAMED_PARAM_MAP));
-    ToDoubleBiFunction<S, double[]> actualRewardFunction = (s, action) -> rewardFunction.apply(s);
+    ToDoubleBiFunction<ES, double[]> actualRewardFunction = (s, action) -> rewardFunction.apply(s);
     return Naming.named(
         name,
         SingleRLAgentTask.fromNumericalEnvironment(supplier, stopCondition, resetAgent, actualRewardFunction)

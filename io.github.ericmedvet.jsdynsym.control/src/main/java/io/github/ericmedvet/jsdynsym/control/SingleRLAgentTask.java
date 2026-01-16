@@ -20,6 +20,7 @@
 package io.github.ericmedvet.jsdynsym.control;
 
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
+import io.github.ericmedvet.jnb.datastructure.Listener;
 import io.github.ericmedvet.jsdynsym.core.DynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent;
@@ -33,34 +34,36 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleBiFunction;
 
-public interface SingleRLAgentTask<C extends ReinforcementLearningAgent<O, A, ?>, O, A, S> extends SingleAgentTask<C, ReinforcementLearningAgent.RewardedInput<O>, A, S> {
+public interface SingleRLAgentTask<C extends ReinforcementLearningAgent<O, A, ? extends CS>, O, A, CS, S> extends SingleAgentTask<C, ReinforcementLearningAgent.RewardedInput<O>, A, CS, S> {
 
-  static <C extends ReinforcementLearningAgent<O, A, ?>, O, A, S> SingleRLAgentTask<C, O, A, S> fromEnvironment(
-      Supplier<? extends DynamicalSystem<A, O, S>> environmentSupplier,
+  static <C extends ReinforcementLearningAgent<O, A, ? extends CS>, O, A, CS, TS> SingleRLAgentTask<C, O, A, CS, TS> fromEnvironment(
+      Supplier<? extends DynamicalSystem<A, O, TS>> environmentSupplier,
       O initialObservation,
       C exampleAgent,
-      Predicate<S> stopCondition,
+      Predicate<TS> stopCondition,
       boolean resetAgent,
-      ToDoubleBiFunction<S, A> rewardFunction
+      ToDoubleBiFunction<TS, A> rewardFunction
   ) {
     return new SingleRLAgentTask<>() {
       @Override
-      public Outcome<Step<RewardedInput<O>, A, S>> simulate(
+      public Outcome<Step<RewardedInput<O>, A, TS>> simulate(
           C agent,
           double dT,
-          DoubleRange tRange
+          DoubleRange tRange,
+          Listener<Timed<CS>> agentStateListener
       ) {
-        DynamicalSystem<A, O, S> environment = environmentSupplier.get();
+        DynamicalSystem<A, O, TS> environment = environmentSupplier.get();
         environment.reset();
         if (resetAgent) {
           agent.reset();
         }
         double t = tRange.min();
-        Map<Double, Step<RewardedInput<O>, A, S>> steps = new HashMap<>();
+        Map<Double, Step<RewardedInput<O>, A, TS>> steps = new HashMap<>();
         O observation = initialObservation;
         double reward = Double.NaN;
         while (t <= tRange.max() && !stopCondition.test(environment.getState())) {
           A action = agent.step(t, observation, reward);
+          agentStateListener.listen(new Timed<>(t, agent.getState()));
           observation = environment.step(t, action);
           reward = rewardFunction.applyAsDouble(environment.getState(), action);
           steps.put(
@@ -69,6 +72,7 @@ public interface SingleRLAgentTask<C extends ReinforcementLearningAgent<O, A, ?>
           );
           t = t + dT;
         }
+        agentStateListener.done();
         return Outcome.of(new TreeMap<>(steps));
       }
 
@@ -79,11 +83,11 @@ public interface SingleRLAgentTask<C extends ReinforcementLearningAgent<O, A, ?>
     };
   }
 
-  static <S> SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], S> fromNumericalEnvironment(
-      Supplier<? extends Environment<double[], double[], S, NumericalDynamicalSystem<?>>> environmentSupplier,
-      Predicate<S> stopCondition,
+  static <CS, TS> SingleRLAgentTask<NumericalReinforcementLearningAgent<? extends CS>, double[], double[], CS, TS> fromNumericalEnvironment(
+      Supplier<? extends Environment<double[], double[], TS, NumericalDynamicalSystem<? extends CS>>> environmentSupplier,
+      Predicate<TS> stopCondition,
       boolean resetAgent,
-      ToDoubleBiFunction<S, double[]> rewardFunction
+      ToDoubleBiFunction<TS, double[]> rewardFunction
   ) {
     return fromEnvironment(
         environmentSupplier,

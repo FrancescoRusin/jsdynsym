@@ -28,7 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-public class VariableSensorPositionsNavigation implements Simulation<Pair<List<Double>, NumericalDynamicalSystem<?>>, SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>, Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>> {
+public class VariableSensorPositionsNavigation<CS> implements Simulation<Pair<List<Double>, NumericalDynamicalSystem<CS>>, SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>, Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>> {
 
   private final NavigationEnvironment.Configuration configuration;
   private final int nOfSensors;
@@ -46,7 +46,7 @@ public class VariableSensorPositionsNavigation implements Simulation<Pair<List<D
 
   @Override
   public Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> simulate(
-      Pair<List<Double>, NumericalDynamicalSystem<?>> pair,
+      Pair<List<Double>, NumericalDynamicalSystem<CS>> pair,
       double dT,
       DoubleRange tRange
   ) {
@@ -56,16 +56,17 @@ public class VariableSensorPositionsNavigation implements Simulation<Pair<List<D
               .formatted(pair.first().size(), nOfSensors)
       );
     }
-    return SingleAgentTask.fromEnvironment(
-        () -> new NavigationEnvironment(
-            sortSensorAngles ? configuration(pair.first()) : configuration(
-                pair.first().stream().sorted().toList()
-            )
-        ),
-        s -> false,
-        true
-    )
-        .simulate(pair.second(), dT, tRange);
+    SingleAgentTask<NumericalDynamicalSystem<CS>, double[], double[], CS, NavigationEnvironment.State> sat = SingleAgentTask
+        .fromEnvironment(
+            () -> new NavigationEnvironment<>(
+                sortSensorAngles ? configuration(pair.first()) : configuration(
+                    pair.first().stream().sorted().toList()
+                )
+            ),
+            s -> false,
+            true
+        );
+    return sat.simulate(pair.second(), dT, tRange);
   }
 
   private NavigationEnvironment.Configuration configuration(List<Double> angles) {
@@ -84,9 +85,9 @@ public class VariableSensorPositionsNavigation implements Simulation<Pair<List<D
   }
 
   @Override
-  public Optional<Pair<List<Double>, NumericalDynamicalSystem<?>>> example() {
+  public Optional<Pair<List<Double>, NumericalDynamicalSystem<CS>>> example() {
     List<Double> angles = Collections.nCopies(nOfSensors, 0d);
-    NavigationEnvironment env = new NavigationEnvironment(configuration(angles));
+    NavigationEnvironment<CS> env = new NavigationEnvironment<>(configuration(angles));
     return Optional.of(
         new Pair<>(
             angles,

@@ -20,6 +20,7 @@
 package io.github.ericmedvet.jsdynsym.control;
 
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
+import io.github.ericmedvet.jnb.datastructure.Listener;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask.Step;
 import io.github.ericmedvet.jsdynsym.core.DynamicalSystem;
 import java.util.HashMap;
@@ -29,34 +30,55 @@ import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public interface SingleAgentTask<C extends DynamicalSystem<O, A, ?>, O, A, S> extends Simulation<C, Step<O, A, S>, Simulation.Outcome<Step<O, A, S>>> {
+public interface SingleAgentTask<C extends DynamicalSystem<O, A, ? extends CS>, O, A, CS, TS> extends Simulation<C, Step<O, A, TS>, Simulation.Outcome<Step<O, A, TS>>> {
 
   record Step<O, A, S>(O observation, A action, S state) {}
 
-  static <C extends DynamicalSystem<O, A, ?>, O, A, S> SingleAgentTask<C, O, A, S> fromEnvironment(
-      Supplier<? extends DynamicalSystem<A, O, S>> environmentSupplier,
+  record Timed<S>(double t, S state) {}
+
+  Outcome<Step<O, A, TS>> simulate(
+      C c,
+      double dT,
+      DoubleRange tRange,
+      Listener<Timed<CS>> agentStateListener
+  );
+
+  @Override
+  default Outcome<Step<O, A, TS>> simulate(C c, double dT, DoubleRange tRange) {
+    return simulate(c, dT, tRange, Listener.deaf());
+  }
+
+  static <C extends DynamicalSystem<O, A, ? extends CS>, O, A, CS, TS> SingleAgentTask<C, O, A, CS, TS> fromEnvironment(
+      Supplier<? extends DynamicalSystem<A, O, TS>> environmentSupplier,
       O initialObservation,
       C exampleAgent,
-      Predicate<S> stopCondition,
+      Predicate<TS> stopCondition,
       boolean resetAgent
   ) {
     return new SingleAgentTask<>() {
       @Override
-      public Outcome<Step<O, A, S>> simulate(C agent, double dT, DoubleRange tRange) {
-        DynamicalSystem<A, O, S> environment = environmentSupplier.get();
+      public Outcome<Step<O, A, TS>> simulate(
+          C agent,
+          double dT,
+          DoubleRange tRange,
+          Listener<Timed<CS>> agentStateListener
+      ) {
+        DynamicalSystem<A, O, TS> environment = environmentSupplier.get();
         environment.reset();
         if (resetAgent) {
           agent.reset();
         }
         double t = tRange.min();
-        Map<Double, Step<O, A, S>> steps = new HashMap<>();
+        Map<Double, Step<O, A, TS>> steps = new HashMap<>();
         O observation = initialObservation;
         while (t <= tRange.max() && !stopCondition.test(environment.getState())) {
           A action = agent.step(t, observation);
+          agentStateListener.listen(new Timed<>(t, agent.getState()));
           observation = environment.step(t, action);
           steps.put(t, new Step<>(observation, action, environment.getState()));
           t = t + dT;
         }
+        agentStateListener.done();
         return Outcome.of(new TreeMap<>(steps));
       }
 
@@ -67,9 +89,9 @@ public interface SingleAgentTask<C extends DynamicalSystem<O, A, ?>, O, A, S> ex
     };
   }
 
-  static <C extends DynamicalSystem<O, A, ?>, O, A, S> SingleAgentTask<C, O, A, S> fromEnvironment(
-      Supplier<Environment<O, A, S, C>> environmentSupplier,
-      Predicate<S> stopCondition,
+  static <C extends DynamicalSystem<O, A, ? extends CS>, O, A, CS, TS> SingleAgentTask<C, O, A, CS, TS> fromEnvironment(
+      Supplier<Environment<O, A, TS, C>> environmentSupplier,
+      Predicate<TS> stopCondition,
       boolean resetAgent
   ) {
     return fromEnvironment(

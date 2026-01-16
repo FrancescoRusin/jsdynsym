@@ -41,15 +41,15 @@ public class SingleAgentTasks {
 
   @SuppressWarnings("unused")
   @Cacheable
-  public static <C extends DynamicalSystem<O, A, ?>, O, A, S> SingleAgentTask<C, O, A, S> fromEnvironment(
+  public static <C extends DynamicalSystem<O, A, CS>, O, A, CS, ES> SingleAgentTask<C, O, A, CS, ES> fromEnvironment(
       @Param(value = "name", iS = "{environment.name}") String name,
-      @Param("environment") Environment<O, A, S, C> environment,
-      @Param(value = "stopCondition", dNPM = "predicate.not(condition = predicate.always())") Predicate<S> stopCondition,
+      @Param("environment") Environment<O, A, ES, C> environment,
+      @Param(value = "stopCondition", dNPM = "predicate.not(condition = predicate.always())") Predicate<ES> stopCondition,
       @Param(value = "resetAgent", dB = true) boolean resetAgent,
       @Param(value = "", injection = Param.Injection.BUILDER) NamedBuilder<?> nb,
       @Param(value = "", injection = Param.Injection.MAP) ParamMap map
   ) {
-    @SuppressWarnings("unchecked") Supplier<Environment<O, A, S, C>> supplier = () -> (Environment<O, A, S, C>) nb
+    @SuppressWarnings("unchecked") Supplier<Environment<O, A, ES, C>> supplier = () -> (Environment<O, A, ES, C>) nb
         .build((NamedParamMap) map.value("environment", ParamMap.Type.NAMED_PARAM_MAP));
     return Naming.named(name, SingleAgentTask.fromEnvironment(supplier, stopCondition, resetAgent));
   }

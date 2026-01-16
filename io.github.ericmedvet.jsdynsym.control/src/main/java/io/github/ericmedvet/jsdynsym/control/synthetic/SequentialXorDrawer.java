@@ -23,8 +23,10 @@ import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jnb.datastructure.Grid;
 import io.github.ericmedvet.jsdynsym.control.Simulation;
 import io.github.ericmedvet.jsdynsym.control.Simulation.Outcome;
+import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.RewardType;
-import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.Step;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.State;
+import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
 import io.github.ericmedvet.jviz.core.plot.Value;
 import io.github.ericmedvet.jviz.core.plot.XYDataSeries;
@@ -38,7 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public class SequentialXorDrawer implements Drawer<Simulation.Outcome<SequentialXor.Step>> {
+public class SequentialXorDrawer implements Drawer<Simulation.Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>>> {
 
   private final LinesPlotDrawer innerDrawer;
   private final Set<RewardType> rewardTypes;
@@ -49,7 +51,10 @@ public class SequentialXorDrawer implements Drawer<Simulation.Outcome<Sequential
   }
 
   @Override
-  public void draw(Graphics2D g, Outcome<Step> outcome) {
+  public void draw(
+      Graphics2D g,
+      Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>> outcome
+  ) {
     List<XYDataSeries> dataSeries = new ArrayList<>();
     dataSeries.add(
         XYDataSeries.of(
@@ -60,7 +65,7 @@ public class SequentialXorDrawer implements Drawer<Simulation.Outcome<Sequential
                 .map(
                     e -> new Point(
                         Value.of(e.getKey()),
-                        Value.of(e.getValue().groundTruthOutput())
+                        Value.of(e.getValue().state().groundTruthOutput())
                     )
                 )
                 .toList()
@@ -75,7 +80,7 @@ public class SequentialXorDrawer implements Drawer<Simulation.Outcome<Sequential
                 .map(
                     e -> new Point(
                         Value.of(e.getKey()),
-                        Value.of(e.getValue().output())
+                        Value.of(e.getValue().state().output())
                     )
                 )
                 .toList()
@@ -93,8 +98,8 @@ public class SequentialXorDrawer implements Drawer<Simulation.Outcome<Sequential
                             Value.of(e.getKey()),
                             Value.of(
                                 SequentialXor.computeError(
-                                    e.getValue().output(),
-                                    e.getValue().groundTruthOutput(),
+                                    e.getValue().state().output(),
+                                    e.getValue().state().groundTruthOutput(),
                                     rewardType
                                 )
                             )

@@ -20,6 +20,7 @@
 package io.github.ericmedvet.jsdynsym.core.rl;
 
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
+import io.github.ericmedvet.jnb.datastructure.NumericalParametrized;
 import io.github.ericmedvet.jsdynsym.core.numerical.LinearAlgebraUtils;
 import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalStatelessSystem;
@@ -31,8 +32,34 @@ import java.util.stream.IntStream;
 
 public class LinearActorCritic implements NumericalTimeInvariantReinforcementLearningAgent<State>, FrozenableNumericalRLAgent<State> {
 
-  public record State(double[][] actorWeights, double[] criticWeights) {
+  public record State(double[][] actorWeights, double[] criticWeights) implements NumericalParametrized<State> {
 
+    @Override
+    public double[] getParams() {
+      double[] ps = new double[(actorWeights.length + 1) * actorWeights[0].length];
+      for (int i = 0; i < actorWeights.length; i++) {
+        System.arraycopy(
+            actorWeights[i],
+            0,
+            ps,
+            i * actorWeights[0].length,
+            actorWeights[0].length
+        );
+      }
+      System.arraycopy(
+          criticWeights,
+          0,
+          ps,
+          actorWeights.length * actorWeights[0].length,
+          actorWeights[0].length
+      );
+      return ps;
+    }
+
+    @Override
+    public void setParams(double[] param) {
+      throw new UnsupportedOperationException("Params cannot be set this way");
+    }
   }
 
   // hyperparameters
@@ -111,7 +138,9 @@ public class LinearActorCritic implements NumericalTimeInvariantReinforcementLea
       for (int j = 0; j < nOfOutputs; j++) {
         double actionDifference = lastAction[j] - meanAction[j];
         for (int i = 0; i < nOfInputs; i++) {
-          double gradLogProb = gradLogProbRange.clip(actionDifference * invSigmaSq * lastObservation[i]);
+          double gradLogProb = gradLogProbRange.clip(
+              actionDifference * invSigmaSq * lastObservation[i]
+          );
           double decay = actorLearningRate * actorWeightDecay * state.actorWeights[j][i];
           state.actorWeights[j][i] = state.actorWeights[j][i] + actorLearningRate * tdError * gradLogProb - decay;
         }
