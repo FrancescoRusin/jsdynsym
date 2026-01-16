@@ -24,12 +24,14 @@ import io.github.ericmedvet.jnb.core.Cacheable;
 import io.github.ericmedvet.jnb.core.Discoverable;
 import io.github.ericmedvet.jnb.core.Param;
 import io.github.ericmedvet.jsdynsym.control.drawer.VectorFieldDrawer;
+import io.github.ericmedvet.jsdynsym.control.drawer.VectorialTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.pong.PongDrawer;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.RewardType;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXorDrawer;
+import io.github.ericmedvet.jviz.core.plot.TrajectoryPlot.Data.ReductionType;
 import io.github.ericmedvet.jviz.core.plot.image.Configuration;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -101,6 +103,14 @@ public class Drawers {
       @Param(value = "arena", dNPM = "empty") Arena.Prepared arena
   ) {
     return new VectorFieldDrawer(arena.arena(), VectorFieldDrawer.Configuration.DEFAULT);
+  }
+
+  @Cacheable
+  public static VectorialTrajectoryDrawer vectorialTrajectory(
+      @Param(value = "configuration", dNPM = "viz.plot.configuration.image()") Configuration configuration,
+      @Param(value = "reductionType", dS = "pca") ReductionType reductionType
+  ) {
+    return new VectorialTrajectoryDrawer(configuration, reductionType);
   }
 
   @Cacheable

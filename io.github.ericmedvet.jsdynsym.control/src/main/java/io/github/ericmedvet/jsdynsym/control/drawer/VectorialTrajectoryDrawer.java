@@ -21,28 +21,42 @@ package io.github.ericmedvet.jsdynsym.control.drawer;
 
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jnb.datastructure.Grid;
+import io.github.ericmedvet.jnb.datastructure.Pair;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
 import io.github.ericmedvet.jviz.core.plot.TrajectoryPlot;
 import io.github.ericmedvet.jviz.core.plot.TrajectoryPlot.Data.ReductionType;
+import io.github.ericmedvet.jviz.core.plot.Value;
+import io.github.ericmedvet.jviz.core.plot.XYDataSeries;
+import io.github.ericmedvet.jviz.core.plot.XYDataSeries.Point;
+import io.github.ericmedvet.jviz.core.plot.XYDataSeriesPlot;
 import io.github.ericmedvet.jviz.core.plot.XYPlot.TitledData;
 import io.github.ericmedvet.jviz.core.plot.image.Configuration;
+import io.github.ericmedvet.jviz.core.plot.image.LinesPlotDrawer;
 import io.github.ericmedvet.jviz.core.plot.image.TrajectoryPlotDrawer;
 import java.awt.Graphics2D;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.stream.IntStream;
 
 public class VectorialTrajectoryDrawer implements Drawer<SortedMap<Double, double[]>> {
 
   private final TrajectoryPlot.Data.ReductionType reductionType;
-  private final TrajectoryPlotDrawer trajectoryPlotDrawer;
+  private final Drawer<Pair<TrajectoryPlot, XYDataSeriesPlot>> combinedDrawer;
 
   public VectorialTrajectoryDrawer(Configuration configuration, ReductionType reductionType) {
     this.reductionType = reductionType;
-    trajectoryPlotDrawer = new TrajectoryPlotDrawer(configuration);
+    combinedDrawer = Drawer.paired(
+        new TrajectoryPlotDrawer(configuration),
+        new LinesPlotDrawer(configuration),
+        Arrangement.VERTICAL,
+        -1
+    );
   }
 
-  @Override
-  public void draw(Graphics2D g, SortedMap<Double, double[]> data) {
+  private Pair<TrajectoryPlot, XYDataSeriesPlot> buildPair(
+      SortedMap<Double, double[]> data
+  ) {
+    String varNameFormat = "v%" + (int) Math.ceil(Math.log10(data.firstEntry().getValue().length)) + "d";
     TrajectoryPlot tp = new TrajectoryPlot(
         "Trajectory (%s)".formatted(reductionType),
         "",
@@ -61,6 +75,44 @@ public class VectorialTrajectoryDrawer implements Drawer<SortedMap<Double, doubl
             )
         )
     );
-    trajectoryPlotDrawer.draw(g, tp);
+    XYDataSeriesPlot lp = new XYDataSeriesPlot(
+        "Original data",
+        "",
+        "",
+        "t",
+        "value",
+        DoubleRange.UNBOUNDED,
+        DoubleRange.UNBOUNDED,
+        Grid.create(
+            1,
+            1,
+            new TitledData<>(
+                "",
+                "",
+                IntStream.range(0, data.firstEntry().getValue().length)
+                    .mapToObj(
+                        i -> XYDataSeries.of(
+                            varNameFormat.formatted(i),
+                            data.entrySet()
+                                .stream()
+                                .map(e -> new Point(Value.of(e.getKey()), Value.of(e.getValue()[i])))
+                                .toList()
+                        )
+                    )
+                    .toList()
+            )
+        )
+    );
+    return new Pair<>(tp, lp);
+  }
+
+  @Override
+  public void draw(Graphics2D g, SortedMap<Double, double[]> data) {
+    combinedDrawer.draw(g, buildPair(data));
+  }
+
+  @Override
+  public ImageInfo imageInfo(SortedMap<Double, double[]> data) {
+    return combinedDrawer.imageInfo(buildPair(data));
   }
 }

@@ -38,7 +38,6 @@ import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.RewardType;
-import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.State;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXorDrawer;
 import io.github.ericmedvet.jsdynsym.core.numerical.LinearCombination;
 import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
@@ -47,7 +46,6 @@ import io.github.ericmedvet.jsdynsym.core.numerical.ann.HebbianMultiLayerPercept
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.rl.FreeFormPlasticMLPRLAgent;
 import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent;
-import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent;
 import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent.RewardedInput;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
 import io.github.ericmedvet.jviz.core.drawer.Drawer.Arrangement;
@@ -333,15 +331,13 @@ public class Main {
                 ds.rl.num.linearActorCritic()
                 """
         )).apply(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)));
+    @SuppressWarnings("unchecked") NumericalReinforcementLearningAgent<?> ffMlp = ((Function<NumericalReinforcementLearningAgent<?>, NumericalReinforcementLearningAgent<?>>) nb
+        .build(
+            """
+                ds.rl.num.freeFormMlp(innerLayers = [2])
+                """
+        )).apply(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)));
     SequentialXorDrawer drawer = new SequentialXorDrawer(Configuration.DEFAULT, Set.of(RewardType.LIMITED));
-    sim.simulate(
-        NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)),
-        1,
-        new DoubleRange(0, 100)
-    );
-
-    Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>> outcome = sim
-        .simulate(lac, 1, new DoubleRange(0, 1000));
     @SuppressWarnings("unchecked") Function<NumericalReinforcementLearningAgent<?>, SortedMap<Double, double[]>> trajF = (Function<NumericalReinforcementLearningAgent<?>, SortedMap<Double, double[]>>) nb
         .build(
             """
@@ -349,12 +345,14 @@ public class Main {
                   stateF = ds.f.params();
                   sat = ds.s.sequentialXor(cases = 100 * ["01"]; resetAgent = true);
                   dT = 1;
-                  tRange = m.range(min = 0; max = 100)
+                  tRange = m.range(min = 0; max = 1000)
                 )
                 """
         );
-    drawer.show(outcome);
+    drawer.show(sim.simulate(lac, 1, new DoubleRange(0, 30)));
+    drawer.show(sim.simulate(ffMlp, 1, new DoubleRange(0, 30)));
     new VectorialTrajectoryDrawer(Configuration.DEFAULT, ReductionType.TSNE).show(trajF.apply(lac));
+    new VectorialTrajectoryDrawer(Configuration.DEFAULT, ReductionType.TSNE).show(trajF.apply(ffMlp));
   }
 
   public static void rlNavigation() {
