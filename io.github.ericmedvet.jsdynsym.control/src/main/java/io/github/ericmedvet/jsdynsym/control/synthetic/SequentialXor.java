@@ -75,7 +75,7 @@ public class SequentialXor<CS> implements SingleRLAgentTask<NumericalReinforceme
     if (resetAgent) {
       agent.reset();
     }
-    for (double t = tRange.min(); t <= tRange.max(); t += dT) {
+    for (double t = tRange.min(); t < tRange.max(); t += dT) {
       double[] inputs = cases.get(c++ % cases.size());
       double[] outputs = agent.step(t, inputs, reward);
       agentStateListener.listen(new Timed<>(t, agent.getState()));
