@@ -27,6 +27,8 @@ import io.github.ericmedvet.jsdynsym.control.navigation.NavigationArena;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment;
 import io.github.ericmedvet.jsdynsym.control.navigation.VariableSensorPositionsNavigation;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.random.RandomGenerator;
 
@@ -40,11 +42,24 @@ public class Simulations {
   public static SequentialXor sequentialXor(
       @Param(value = "name", iS = "sequentialXor") String name,
       @Param(value = "cases", dSs = {"00", "01", "10", "11"}) List<String> cases,
+      @Param(value = "rewardType", dS = "unlimited") SequentialXor.RewardType rewardType,
       @Param("resetAgent") boolean resetAgent,
-      @Param(value = "rewardType", dS = "unlimited") SequentialXor.RewardType rewardType
+      @Param("shuffle") boolean shuffle,
+      @Param(value = "randomGenerator", dNPM = "m.defaultRG()") RandomGenerator randomGenerator
   ) {
+    List<String> casesList = new ArrayList<>(cases);
+    if (shuffle) {
+      Collections.shuffle(casesList, randomGenerator);
+    }
     return new SequentialXor(
-        cases.stream().map(s -> s.chars().mapToDouble(c -> c == '0' ? -1 : 1).toArray()).toList(),
+        casesList.stream()
+            .map(
+                s -> s
+                    .chars()
+                    .mapToDouble(c -> c == '0' ? -1 : 1)
+                    .toArray()
+            )
+            .toList(),
         rewardType,
         resetAgent
     );
