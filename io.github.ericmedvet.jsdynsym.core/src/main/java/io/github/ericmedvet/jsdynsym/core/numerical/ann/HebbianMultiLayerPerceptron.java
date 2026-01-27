@@ -40,6 +40,7 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
   private final double learningRate;
   private final int weightsUpdateInterval;
   private final DoubleRange initialWeightRange;
+  private final DoubleRange weightRange;
   private final ParametrizationType parametrizationType;
   private final WeightInitializationType weightInitializationType;
   private final RandomGenerator randomGenerator;
@@ -57,6 +58,7 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
       double learningRate,
       int weightsUpdateInterval,
       DoubleRange initialWeightRange,
+      double maxWeightMagnitude,
       RandomGenerator randomGenerator,
       ParametrizationType parametrizationType,
       WeightInitializationType weightInitializationType
@@ -71,6 +73,7 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
     this.learningRate = learningRate;
     this.weightsUpdateInterval = weightsUpdateInterval;
     this.initialWeightRange = initialWeightRange;
+    this.weightRange = new DoubleRange(-maxWeightMagnitude, maxWeightMagnitude);
     this.randomGenerator = randomGenerator;
     this.parametrizationType = parametrizationType;
     this.weightInitializationType = weightInitializationType;
@@ -86,6 +89,7 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
       double learningRate,
       int weightsUpdateInterval,
       DoubleRange initialWeightRange,
+      double maxWeightMagnitude,
       RandomGenerator randomGenerator,
       ParametrizationType parametrizationType,
       WeightInitializationType weightInitializationType
@@ -98,6 +102,7 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
         learningRate,
         weightsUpdateInterval,
         initialWeightRange,
+        maxWeightMagnitude,
         randomGenerator,
         parametrizationType,
         weightInitializationType
@@ -113,6 +118,7 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
       double learningRate,
       int weightsUpdateInterval,
       DoubleRange initialWeightRange,
+      double maxWeightMagnitude,
       RandomGenerator randomGenerator,
       ParametrizationType parametrizationType,
       WeightInitializationType weightInitializationType
@@ -128,6 +134,7 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
         learningRate,
         weightsUpdateInterval,
         initialWeightRange,
+        maxWeightMagnitude,
         randomGenerator,
         parametrizationType,
         weightInitializationType
@@ -259,7 +266,9 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
           double postActivation = state.activations[i][j];
           for (int k = 0; k < newWeights[i - 1][j].length; k++) {
             double preActivation = (k == 0) ? 1.0 : state.activations[i - 1][k - 1];
-            newWeights[i - 1][j][k] += learningRate * (as[i - 1][j][k] * preActivation + bs[i - 1][j][k] * postActivation + cs[i - 1][j][k] * preActivation * postActivation + ds[i - 1][j][k]);
+            newWeights[i - 1][j][k] = weightRange.clip(
+                newWeights[i - 1][j][k] + learningRate * (as[i - 1][j][k] * preActivation + bs[i - 1][j][k] * postActivation + cs[i - 1][j][k] * preActivation * postActivation + ds[i - 1][j][k])
+            );
           }
         }
       }

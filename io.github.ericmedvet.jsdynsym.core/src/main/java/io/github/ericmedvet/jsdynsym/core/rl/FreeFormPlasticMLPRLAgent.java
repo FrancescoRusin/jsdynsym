@@ -52,6 +52,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
   private final DoubleRange initialWeightRange;
   private final HebbianMultiLayerPerceptron.WeightInitializationType weightInitializationType;
   private final RandomGenerator randomGenerator;
+  private final DoubleRange weightRange;
   private NamedUnivariateRealFunction plasticityFunction;
   private int stepCounter;
   private State state;
@@ -64,6 +65,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
       int weightsUpdateInterval,
       HebbianMultiLayerPerceptron.WeightInitializationType weightInitializationType,
       DoubleRange initialWeightRange,
+      double maxWeightMagnitude,
       RandomGenerator randomGenerator
   ) {
     if (weightInitializationType.equals(HebbianMultiLayerPerceptron.WeightInitializationType.PARAMS)) {
@@ -76,6 +78,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
     this.weightsUpdateInterval = weightsUpdateInterval;
     this.weightInitializationType = weightInitializationType;
     this.initialWeightRange = initialWeightRange;
+    this.weightRange = new DoubleRange(-maxWeightMagnitude, maxWeightMagnitude);
     this.randomGenerator = randomGenerator;
     reset();
   }
@@ -90,6 +93,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
       int weightsUpdateInterval,
       HebbianMultiLayerPerceptron.WeightInitializationType weightInitializationType,
       DoubleRange initialWeightRange,
+      double maxWeightMagnitude,
       RandomGenerator randomGenerator
   ) {
     this(
@@ -100,6 +104,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
         weightsUpdateInterval,
         weightInitializationType,
         initialWeightRange,
+        maxWeightMagnitude,
         randomGenerator
     );
   }
@@ -122,6 +127,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
       MultiLayerPerceptron.ActivationFunction activationFunction,
       NamedUnivariateRealFunction plasticityFunction,
       int[] neurons,
+      DoubleRange weightRange,
       boolean isUpdateStep
   ) {
     long age = state.age;
@@ -150,7 +156,9 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
             inputParameters.put(PRE_SYNAPTIC_NEURON_INDEX, (double) k);
             inputParameters.put(POST_SYNAPTIC_NEURON_INDEX, (double) j);
             // update weights
-            newWeights[i - 1][j][k] += plasticityFunction.computeAsDouble(inputParameters);
+            newWeights[i - 1][j][k] = weightRange.clip(
+                newWeights[i - 1][j][k] + plasticityFunction.computeAsDouble(inputParameters)
+            );
           }
         }
       }
@@ -269,6 +277,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
             activationFunction,
             plasticityFunction,
             neurons,
+            weightRange,
             isUpdateStep
         );
         innerStepCounter += 1;
@@ -291,7 +300,16 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
   @Override
   public double[] step(double[] input, double reward) {
     boolean isUpdateStep = stepCounter > 0 && stepCounter % weightsUpdateInterval == 0;
-    StateAndOutput step = step(input, reward, state, activationFunction, plasticityFunction, neurons, isUpdateStep);
+    StateAndOutput step = step(
+        input,
+        reward,
+        state,
+        activationFunction,
+        plasticityFunction,
+        neurons,
+        weightRange,
+        isUpdateStep
+    );
     stepCounter += 1;
     state = step.state;
     return step.output;
