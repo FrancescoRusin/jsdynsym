@@ -80,12 +80,12 @@ public class Main {
         );
     @SuppressWarnings("unchecked") FreeFormPlasticMLPRLAgent ffmlp = ((Function<NumericalReinforcementLearningAgent<?>, FreeFormPlasticMLPRLAgent>) nb
         .build(
-            "ds.rl.num.freeFormMlp(innerLayers = [8]; randomGenerator = m.defaultRG(seed = -1))"
+            "ds.rl.num.freeFormMlp(innerLayers = [2]; weightInitializationType = zeros)"
         )).apply(task.example().orElseThrow());
     int runs = 10;
     for (int r = 0; r < runs; r++) {
       long startTime = System.nanoTime();
-      for (int i = 0; i < 5000; i++) {
+      for (int i = 0; i < 1000; i++) {
         ffmlp.reset();
         //      Simulation.Outcome<? extends SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], ?>> outcome =
         task.simulate(ffmlp, 0.1, new DoubleRange(0, 30));
@@ -109,7 +109,60 @@ public class Main {
     // freeFormNavigation();
     // manualNavigation();
     // rlNavigation();
-    sequentialXor();
+    // sequentialXor();
+    xorTest();
+  }
+
+  public static void xorTest() {
+    int nOfInputs = 2;
+    int nOfOutputs = 1;
+    int[] innerNeurons = {2};
+    double[][][] weights = new double[][][]{{{1, 2, 2}, {1, -1, -1}}, {{-2, 2, 2}}
+    };
+    int[] neurons = MultiLayerPerceptron.countNeurons(nOfInputs, innerNeurons, nOfOutputs);
+    double[][] inputs = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
+    MultiLayerPerceptron mlp = new MultiLayerPerceptron(MultiLayerPerceptron.ActivationFunction.TANH, weights, neurons);
+    double[][][] zeros = HebbianMultiLayerPerceptron.emptyArray(
+        MultiLayerPerceptron.countNeurons(nOfInputs, innerNeurons, nOfOutputs)
+    );
+    HebbianMultiLayerPerceptron hmlp = new HebbianMultiLayerPerceptron(
+        MultiLayerPerceptron.ActivationFunction.TANH,
+        zeros,
+        zeros,
+        zeros,
+        zeros,
+        weights,
+        neurons,
+        0,
+        1,
+        new DoubleRange(-0.0, 0.0),
+        10,
+        new Random(2),
+        HebbianMultiLayerPerceptron.ParametrizationType.NETWORK,
+        HebbianMultiLayerPerceptron.WeightInitializationType.PARAMS
+    );
+    System.out.println("MLP test:");
+    for (double[] input : inputs) {
+      double output = mlp.compute(input)[0];
+      // double roundOut = (output >= 0) ? 1 : -1;
+      System.out.printf(
+          "x1=%2.0f x2=%2.0f -> y=%2.2f%n",
+          input[0],
+          input[1],
+          output
+      );
+    }
+    System.out.println("hMLP test:");
+    for (double[] input : inputs) {
+      double output = hmlp.step(input)[0];
+      // double roundOut = (output >= 0) ? 1 : -1;
+      System.out.printf(
+          "x1=%2.0f x2=%2.0f -> y=%2.2f%n",
+          input[0],
+          input[1],
+          output
+      );
+    }
   }
 
   public static void hebbianNavigation() {
