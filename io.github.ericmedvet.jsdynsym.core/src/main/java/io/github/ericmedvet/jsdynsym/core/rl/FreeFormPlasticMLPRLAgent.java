@@ -45,6 +45,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
   private static final String PRE_SYNAPTIC_NEURON_INDEX = "preSynapticNeuronIdx";
   private static final String POST_SYNAPTIC_NEURON_INDEX = "postSynapticNeuronIdx";
   private static final String LAYER_INDEX = "layerIdx";
+  private final double[] biasActivationsHistory;
   private final MultiLayerPerceptron.ActivationFunction activationFunction;
   private final int weightsUpdateInterval;
   private final int[] neurons;
@@ -79,7 +80,9 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
     this.weightInitializationType = weightInitializationType;
     this.initialWeightRange = initialWeightRange;
     this.weightRange = new DoubleRange(-maxWeightMagnitude, maxWeightMagnitude);
+    this.biasActivationsHistory = new double[historyLength];
     this.randomGenerator = randomGenerator;
+    Arrays.fill(biasActivationsHistory, 1.0);
     reset();
   }
 
@@ -128,6 +131,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
       NamedUnivariateRealFunction plasticityFunction,
       int[] neurons,
       DoubleRange weightRange,
+      double[] biasActivationsHistory,
       boolean isUpdateStep
   ) {
     long age = state.age;
@@ -148,9 +152,9 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
           // statistics post synapse
           Statistics.from(state.activationsHistory[i][j], age - 1)
               .insert(inputParameters, Statistics.StatisticsScope.NEURON_POST);
-          for (int k = 1; k < newWeights[i - 1][j].length; k++) {
+          for (int k = 0; k < newWeights[i - 1][j].length; k++) {
             // statistics pre synapse
-            Statistics.from(state.activationsHistory[i - 1][k - 1], age - 1)
+            Statistics.from((k == 0) ? biasActivationsHistory : state.activationsHistory[i - 1][k - 1], age - 1)
                 .insert(inputParameters, Statistics.StatisticsScope.NEURON_PRE);
             inputParameters.put(LAYER_INDEX, (double) i);
             inputParameters.put(PRE_SYNAPTIC_NEURON_INDEX, (double) k);
@@ -278,6 +282,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
             plasticityFunction,
             neurons,
             weightRange,
+            biasActivationsHistory,
             isUpdateStep
         );
         innerStepCounter += 1;
@@ -308,6 +313,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
         plasticityFunction,
         neurons,
         weightRange,
+        biasActivationsHistory,
         isUpdateStep
     );
     stepCounter += 1;
