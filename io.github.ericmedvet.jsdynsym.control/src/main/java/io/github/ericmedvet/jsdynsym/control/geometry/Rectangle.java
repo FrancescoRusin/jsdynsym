@@ -32,40 +32,31 @@ public record Rectangle(Point topLeft, Point bottomRight) {
     }
   }
 
-  // the list of intersection points returned sorted in ascending order based on the distance from segment.p1()
-  public List<Point> intersection(Segment segment, double precision) {
-    List<Point> intersections = new ArrayList<>();
-    // check intersection with each edge
-    for (Segment edge : List.of(topEdge(), bottomEdge(), leftEdge(), rightEdge())) {
-      Point intersection = segment.intersection(edge, precision);
-      if (intersection != null) {
-        intersections.add(intersection);
-      }
-    }
-    intersections.sort((intersection1, intersection2) -> {
-      double distance1 = segment.p1().distance(intersection1);
-      double distance2 = segment.p1().distance(intersection2);
-      return Double.compare(distance1, distance2);
-    });
-    return intersections;
+  public Rectangle(Point center, double w, double h) {
+    this(center.sum(new Point(-w / 2d, h / 2d)), center.sum(new Point(w / 2d, -h / 2d)));
   }
 
-  public List<Point> verticalEdgesIntersections(Segment segment, double precision) {
-    List<Point> verticalEdgesIntersections = new ArrayList<>();
-    Point leftEdgeIntersection = segment.intersection(leftEdge(), precision);
-    Point rightEdgeIntersection = segment.intersection(rightEdge(), precision);
-    if (leftEdgeIntersection != null) {
-      verticalEdgesIntersections.add(leftEdgeIntersection);
-    }
-    if (rightEdgeIntersection != null) {
-      verticalEdgesIntersections.add(rightEdgeIntersection);
-    }
-    verticalEdgesIntersections.sort((intersection1, intersection2) -> {
-      double distance1 = segment.p1().distance(intersection1);
-      double distance2 = segment.p1().distance(intersection2);
-      return Double.compare(distance1, distance2);
-    });
-    return verticalEdgesIntersections;
+  public static Rectangle of(Point min, Point max) {
+    return new Rectangle(new Point(min.x(), max.y()), new Point(max.x(), min.y()));
+  }
+
+  public Segment bottomEdge() {
+    return new Segment(bottomLeft(), bottomRight);
+  }
+
+  public Point bottomLeft() {
+    return new Point(topLeft.x(), bottomRight.y());
+  }
+
+  public Point center() {
+    return new Point(
+        topLeft.x() / 2d + bottomRight.x() / 2d,
+        topLeft.y() / 2d + bottomRight.y() / 2d
+    );
+  }
+
+  public double height() {
+    return topLeft.y() - bottomRight.y();
   }
 
   public List<Point> horizontalEdgesIntersections(Segment segment, double precision) {
@@ -86,16 +77,38 @@ public record Rectangle(Point topLeft, Point bottomRight) {
     return horizontalEdgesIntersections;
   }
 
+  // the list of intersection points returned sorted in ascending order based on the distance from segment.p1()
+  public List<Point> intersection(Segment segment, double precision) {
+    List<Point> intersections = new ArrayList<>();
+    // check intersection with each edge
+    for (Segment edge : List.of(topEdge(), bottomEdge(), leftEdge(), rightEdge())) {
+      Point intersection = segment.intersection(edge, precision);
+      if (intersection != null) {
+        intersections.add(intersection);
+      }
+    }
+    intersections.sort((intersection1, intersection2) -> {
+      double distance1 = segment.p1().distance(intersection1);
+      double distance2 = segment.p1().distance(intersection2);
+      return Double.compare(distance1, distance2);
+    });
+    return intersections;
+  }
+
   public Segment leftEdge() {
     return new Segment(topLeft, bottomLeft());
   }
 
-  public Segment rightEdge() {
-    return new Segment(topRight(), bottomRight);
+  public Point max() {
+    return new Point(bottomRight.x(), topLeft.y());
   }
 
-  public Segment bottomEdge() {
-    return new Segment(bottomLeft(), bottomRight);
+  public Point min() {
+    return new Point(topLeft.x(), bottomRight.y());
+  }
+
+  public Segment rightEdge() {
+    return new Segment(topRight(), bottomRight);
   }
 
   public Segment topEdge() {
@@ -106,7 +119,31 @@ public record Rectangle(Point topLeft, Point bottomRight) {
     return new Point(bottomRight.x(), topLeft.y());
   }
 
-  public Point bottomLeft() {
-    return new Point(topLeft.x(), bottomRight.y());
+  public List<Point> verticalEdgesIntersections(Segment segment, double precision) {
+    List<Point> verticalEdgesIntersections = new ArrayList<>();
+    Point leftEdgeIntersection = segment.intersection(leftEdge(), precision);
+    Point rightEdgeIntersection = segment.intersection(rightEdge(), precision);
+    if (leftEdgeIntersection != null) {
+      verticalEdgesIntersections.add(leftEdgeIntersection);
+    }
+    if (rightEdgeIntersection != null) {
+      verticalEdgesIntersections.add(rightEdgeIntersection);
+    }
+    verticalEdgesIntersections.sort((intersection1, intersection2) -> {
+      double distance1 = segment.p1().distance(intersection1);
+      double distance2 = segment.p1().distance(intersection2);
+      return Double.compare(distance1, distance2);
+    });
+    return verticalEdgesIntersections;
   }
+
+  public double width() {
+    return bottomRight.x() - topLeft.x();
+  }
+
+  @Override
+  public String toString() {
+    return "r(%s->%s)".formatted(min(), max());
+  }
+
 }

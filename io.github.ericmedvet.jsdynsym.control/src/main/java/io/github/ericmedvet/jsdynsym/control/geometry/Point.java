@@ -30,6 +30,14 @@ public record Point(double x, double y) {
     this(Math.cos(direction), Math.sin(direction));
   }
 
+  public static Point ofX(double x) {
+    return new Point(x, 0);
+  }
+
+  public static Point ofY(double y) {
+    return new Point(0, y);
+  }
+
   public Point diff(Point p) {
     return new Point(x - p.x(), y - p.y());
   }
@@ -59,12 +67,26 @@ public record Point(double x, double y) {
     return Math.abs(l.a() * x + l.b() * y + l.c()) / Math.sqrt(l.a() * l.a() + l.b() * l.b());
   }
 
+  public Point getOpposite() {
+    return new Point(-x, -y);
+  }
+
+  // TODO check
+  public double getRotationAngle(Point centerOfRotation) {
+    return this.diff(centerOfRotation).direction();
+  }
+
   public double magnitude() {
     return Math.sqrt(x * x + y * y);
   }
 
-  public Point getOpposite() {
-    return new Point(-x, -y);
+  // TODO check
+  public Point rotate(Point centerOfRotation, double angle) {
+    return this.translate(centerOfRotation.getOpposite()).rotate(angle).translate(centerOfRotation);
+  }
+
+  public Point rotate(double angle) {
+    return new Point(x * Math.cos(angle) - y * Math.sin(angle), x * Math.sin(angle) + y * Math.cos(angle));
   }
 
   public Point scale(double r) {
@@ -75,26 +97,12 @@ public record Point(double x, double y) {
     return new Point(x + p.x(), y + p.y());
   }
 
-  // TODO check
-  public Point rotate(Point centerOfRotation, double angle) {
-    return this.translate(centerOfRotation.getOpposite()).rotate(angle).translate(centerOfRotation);
+  @Override
+  public String toString() {
+    return String.format("(%.3f;%.3f)", x, y);
   }
 
   public Point translate(Point translation) {
     return new Point(x + translation.x(), y + translation.y());
-  }
-
-  public Point rotate(double angle) {
-    return new Point(x * Math.cos(angle) - y * Math.sin(angle), x * Math.sin(angle) + y * Math.cos(angle));
-  }
-
-  // TODO check
-  public double getRotationAngle(Point centerOfRotation) {
-    return this.diff(centerOfRotation).direction();
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%.3f;%.3f)", x, y);
   }
 }
