@@ -26,6 +26,8 @@ import io.github.ericmedvet.jnb.datastructure.FormattedNamedFunction;
 import io.github.ericmedvet.jsdynsym.control.Simulation;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask.Step;
+import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils;
+import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils.ScoreType;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.State;
 import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent;
@@ -35,15 +37,16 @@ import java.util.stream.Collectors;
 
 @Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.environment|env|e.sxor")
 public class SequentialXorFunctions {
+
   private SequentialXorFunctions() {
   }
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> avgScore(
-      @Param(value = "name", iS = "avg[{rewardType}]") String name,
+      @Param(value = "name", iS = "avg[{scoreType}]") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>>> beforeF,
       @Param(value = "format", dS = "%+5.3f") String format,
-      @Param(value = "rewardType", dS = "unlimited") SequentialXor.RewardType rewardType,
+      @Param(value = "scoreType", dS = "unlimited") ScoreType scoreType,
       @Param("caseIndexes") List<Integer> caseIndexes
   ) {
     Function<Simulation.Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>>, Double> f = o -> {
@@ -54,7 +57,7 @@ public class SequentialXorFunctions {
           .toList();
       return caseIndexes.stream()
           .map(i -> states.get((i < 0) ? (states.size() + i) : i))
-          .mapToDouble(s -> SequentialXor.computeError(s.output(), s.groundTruthOutput(), rewardType))
+          .mapToDouble(s -> BooleanUtils.computeScore(s.output(), s.groundTruthOutput(), scoreType))
           .average()
           .orElse(0d);
     };
@@ -67,7 +70,7 @@ public class SequentialXorFunctions {
       @Param(value = "name", iS = "avg.delta[{rewardType}]") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>>> beforeF,
       @Param(value = "format", dS = "%+5.3f") String format,
-      @Param(value = "rewardType", dS = "unlimited") SequentialXor.RewardType rewardType,
+      @Param(value = "scoreType", dS = "unlimited") ScoreType scoreType,
       @Param("firstIndexes") List<Integer> firstIndexes,
       @Param("secondIndexes") List<Integer> secondIndexes
   ) {
@@ -82,14 +85,22 @@ public class SequentialXorFunctions {
           double firstAvg = firstIndexes.stream()
               .map(i -> steps.get((i < 0) ? (steps.size() + i) : i))
               .mapToDouble(
-                  s -> SequentialXor.computeError(s.state().output(), s.state().groundTruthOutput(), rewardType)
+                  s -> BooleanUtils.computeScore(
+                      s.state().output(),
+                      s.state().groundTruthOutput(),
+                      scoreType
+                  )
               )
               .average()
               .orElse(0);
           double secondAvg = secondIndexes.stream()
               .map(i -> steps.get((i < 0) ? (steps.size() + i) : i))
               .mapToDouble(
-                  s -> SequentialXor.computeError(s.state().output(), s.state().groundTruthOutput(), rewardType)
+                  s -> BooleanUtils.computeScore(
+                      s.state().output(),
+                      s.state().groundTruthOutput(),
+                      scoreType
+                  )
               )
               .average()
               .orElse(0);
@@ -106,7 +117,7 @@ public class SequentialXorFunctions {
       @Param(value = "name", iS = "avg.delta[{rewardType}]") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>>> beforeF,
       @Param(value = "format", dS = "%+5.3f") String format,
-      @Param(value = "rewardType", dS = "unlimited") SequentialXor.RewardType rewardType,
+      @Param(value = "scoreType", dS = "unlimited") ScoreType scoreType,
       @Param("indexes") List<Integer> indexes
   ) {
     Function<Simulation.Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>>, Double> f = o -> o
@@ -120,7 +131,11 @@ public class SequentialXorFunctions {
           double[] scores = indexes.stream()
               .map(i -> steps.get((i < 0) ? (steps.size() + i) : i))
               .mapToDouble(
-                  s -> SequentialXor.computeError(s.state().output(), s.state().groundTruthOutput(), rewardType)
+                  s -> BooleanUtils.computeScore(
+                      s.state().output(),
+                      s.state().groundTruthOutput(),
+                      scoreType
+                  )
               )
               .toArray();
           double avg = 0;

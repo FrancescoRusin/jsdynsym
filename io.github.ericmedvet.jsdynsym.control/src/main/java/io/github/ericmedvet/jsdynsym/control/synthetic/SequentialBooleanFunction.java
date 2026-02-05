@@ -21,29 +21,40 @@ package io.github.ericmedvet.jsdynsym.control.synthetic;
 
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jnb.datastructure.Listener;
-import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.control.SingleRLAgentTask;
 import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils.ScoreType;
-import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.State;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialBooleanFunction.State;
+import io.github.ericmedvet.jsdynsym.core.bool.BooleanFunction;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent;
-import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent;
 import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent.RewardedInput;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
-public class SequentialXor<CS> implements SingleRLAgentTask<NumericalReinforcementLearningAgent<? extends CS>, double[], double[], CS, State> {
+public class SequentialBooleanFunction<CS> implements SingleRLAgentTask<NumericalReinforcementLearningAgent<? extends CS>, double[], double[], CS, State> {
 
-  private final List<double[]> cases;
+  private final List<Case> cases;
+  private final BooleanFunction target;
   private final ScoreType scoreType;
   private final boolean resetAgent;
 
-  public SequentialXor(List<double[]> cases, ScoreType scoreType, boolean resetAgent) {
-    this.cases = cases;
+  public SequentialBooleanFunction(
+      List<boolean[]> cases,
+      BooleanFunction target,
+      ScoreType scoreType,
+      boolean resetAgent
+  ) {
+    this.cases = cases.stream()
+        .map(
+            bitString -> new Case(
+                BooleanUtils.bitStringToDoubleString(bitString),
+                BooleanUtils.bitStringToDoubleString(target.compute(bitString))
+            )
+        )
+        .toList();
+    this.target = target;
     this.scoreType = scoreType;
     this.resetAgent = resetAgent;
   }
@@ -51,36 +62,36 @@ public class SequentialXor<CS> implements SingleRLAgentTask<NumericalReinforceme
   @Override
   public Optional<NumericalReinforcementLearningAgent<? extends CS>> example() {
     return Optional.of(
-        NumericalReinforcementLearningAgent.from(NumericalDynamicalSystem.from(2, 1))
+        NumericalReinforcementLearningAgent.from(
+            NumericalDynamicalSystem.from(target.nOfInputs(), target.nOfOutputs())
+        )
     );
   }
 
   @Override
-  public Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>> simulate(
+  public Outcome<Step<RewardedInput<double[]>, double[], State>> simulate(
       NumericalReinforcementLearningAgent<? extends CS> agent,
       double dT,
       DoubleRange tRange,
       Listener<Timed<CS>> agentStateListener
   ) {
-    SortedMap<Double, SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>> states = new TreeMap<>();
+    SortedMap<Double, Step<RewardedInput<double[]>, double[], State>> states = new TreeMap<>();
     int c = 0;
     double reward = 0;
     if (resetAgent) {
       agent.reset();
     }
     for (double t = tRange.min(); t < tRange.max(); t += dT) {
-      double[] inputs = cases.get(c++ % cases.size());
-      double[] outputs = agent.step(t, inputs, reward);
+      Case bCase = cases.get(c++ % cases.size());
+      double[] output = agent.step(t, bCase.input, reward);
       agentStateListener.listen(new Timed<>(t, agent.getState()));
-      double output = outputs[0];
-      double gtOutput = ((inputs[0] > 0) ^ (inputs[1] > 0)) ? 1 : -1;
-      reward = BooleanUtils.computeScore(output, gtOutput, scoreType);
+      reward = BooleanUtils.computeScore(output, bCase.output, scoreType);
       states.put(
           t,
-          new SingleAgentTask.Step<>(
-              new RewardedInput<>(inputs, reward),
-              outputs,
-              new State(output, gtOutput)
+          new Step<>(
+              new RewardedInput<>(bCase.input, reward),
+              output,
+              new State(bCase.output, bCase.output)
           )
       );
     }
@@ -90,14 +101,16 @@ public class SequentialXor<CS> implements SingleRLAgentTask<NumericalReinforceme
 
   @Override
   public String toString() {
-    return "SequantialXor[%d]".formatted(cases.size());
+    return "SequentialBF[%d->%d;%d]".formatted(
+        target.nOfInputs(),
+        target.nOfOutputs(),
+        cases.size()
+    );
   }
 
-  public static String stringInputs(double[] inputs) {
-    return Arrays.stream(inputs).mapToObj(i -> (i < 0) ? "0" : "1").collect(Collectors.joining());
+  private record Case(double[] input, double[] output) {
   }
 
-  public record State(double output, double groundTruthOutput) {
-
+  public record State(double[] output, double[] groundTruthOutput) {
   }
 }

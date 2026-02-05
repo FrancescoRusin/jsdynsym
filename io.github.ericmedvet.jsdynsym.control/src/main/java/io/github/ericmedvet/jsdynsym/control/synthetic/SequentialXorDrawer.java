@@ -24,7 +24,7 @@ import io.github.ericmedvet.jnb.datastructure.Grid;
 import io.github.ericmedvet.jsdynsym.control.Simulation;
 import io.github.ericmedvet.jsdynsym.control.Simulation.Outcome;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
-import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.RewardType;
+import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils.ScoreType;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.State;
 import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
@@ -43,11 +43,11 @@ import java.util.Set;
 public class SequentialXorDrawer implements Drawer<Simulation.Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>>> {
 
   private final LinesPlotDrawer innerDrawer;
-  private final Set<RewardType> rewardTypes;
+  private final Set<ScoreType> scoreTypes;
 
-  public SequentialXorDrawer(Configuration configuration, Set<RewardType> rewardTypes) {
+  public SequentialXorDrawer(Configuration configuration, Set<ScoreType> scoreTypes) {
     this.innerDrawer = new LinesPlotDrawer(configuration);
-    this.rewardTypes = rewardTypes;
+    this.scoreTypes = scoreTypes;
   }
 
   @Override
@@ -86,7 +86,7 @@ public class SequentialXorDrawer implements Drawer<Simulation.Outcome<SingleAgen
                 .toList()
         )
     );
-    rewardTypes.forEach(
+    scoreTypes.forEach(
         rewardType -> dataSeries.add(
             XYDataSeries.of(
                 "reward:" + rewardType.name().toLowerCase(),
@@ -97,7 +97,7 @@ public class SequentialXorDrawer implements Drawer<Simulation.Outcome<SingleAgen
                         e -> new Point(
                             Value.of(e.getKey()),
                             Value.of(
-                                SequentialXor.computeError(
+                                BooleanUtils.computeScore(
                                     e.getValue().state().output(),
                                     e.getValue().state().groundTruthOutput(),
                                     rewardType

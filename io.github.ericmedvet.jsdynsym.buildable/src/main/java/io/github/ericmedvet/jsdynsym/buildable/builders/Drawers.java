@@ -29,7 +29,7 @@ import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.pong.PongDrawer;
-import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.RewardType;
+import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils.ScoreType;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXorDrawer;
 import io.github.ericmedvet.jviz.core.plot.TrajectoryPlot.Data.ReductionType;
 import io.github.ericmedvet.jviz.core.plot.image.Configuration;
@@ -93,9 +93,9 @@ public class Drawers {
   @Cacheable
   public static SequentialXorDrawer sequentialXor(
       @Param(value = "configuration", dNPM = "viz.plot.configuration.image()") Configuration configuration,
-      @Param("rewardTypes") List<RewardType> rewardTypes
+      @Param("scoreTypes") List<ScoreType> scoreTypes
   ) {
-    return new SequentialXorDrawer(configuration, new LinkedHashSet<>(rewardTypes));
+    return new SequentialXorDrawer(configuration, new LinkedHashSet<>(scoreTypes));
   }
 
   @Cacheable
