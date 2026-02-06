@@ -26,7 +26,10 @@ import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationArena;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment;
 import io.github.ericmedvet.jsdynsym.control.navigation.VariableSensorPositionsNavigation;
+import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialBooleanFunction;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor;
+import io.github.ericmedvet.jsdynsym.core.bool.BooleanFunction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -39,10 +42,11 @@ public class Simulations {
   }
 
   @Cacheable
-  public static SequentialXor sequentialXor(
-      @Param(value = "name", iS = "sequentialXor") String name,
-      @Param(value = "cases", dSs = {"00", "01", "10", "11"}) List<String> cases,
-      @Param(value = "rewardType", dS = "unlimited") SequentialXor.RewardType rewardType,
+  public static SequentialBooleanFunction<?> sequentialBf(
+      @Param(value = "name", iS = "sequentialBf") String name,
+      @Param("target") BooleanFunction target,
+      @Param("cases") List<String> cases,
+      @Param(value = "rewardType", dS = "unlimited") BooleanUtils.ScoreType rewardType,
       @Param("resetAgent") boolean resetAgent,
       @Param("shuffle") boolean shuffle,
       @Param(value = "randomGenerator", dNPM = "m.defaultRG()") RandomGenerator randomGenerator
@@ -51,14 +55,32 @@ public class Simulations {
     if (shuffle) {
       Collections.shuffle(casesList, randomGenerator);
     }
-    return new SequentialXor(
+    return new SequentialBooleanFunction<>(
         casesList.stream()
-            .map(
-                s -> s
-                    .chars()
-                    .mapToDouble(c -> c == '0' ? -1 : 1)
-                    .toArray()
-            )
+            .map(BooleanUtils::stringToBitString)
+            .toList(),
+        target,
+        rewardType,
+        resetAgent
+    );
+  }
+
+  @Cacheable
+  public static SequentialXor<?> sequentialXor(
+      @Param(value = "name", iS = "sequentialXor") String name,
+      @Param(value = "cases", dSs = {"00", "01", "10", "11"}) List<String> cases,
+      @Param(value = "rewardType", dS = "unlimited") BooleanUtils.ScoreType rewardType,
+      @Param("resetAgent") boolean resetAgent,
+      @Param("shuffle") boolean shuffle,
+      @Param(value = "randomGenerator", dNPM = "m.defaultRG()") RandomGenerator randomGenerator
+  ) {
+    List<String> casesList = new ArrayList<>(cases);
+    if (shuffle) {
+      Collections.shuffle(casesList, randomGenerator);
+    }
+    return new SequentialXor<>(
+        casesList.stream()
+            .map(s -> BooleanUtils.bitStringToDoubleString(BooleanUtils.stringToBitString(s)))
             .toList(),
         rewardType,
         resetAgent
@@ -66,7 +88,7 @@ public class Simulations {
   }
 
   @Cacheable
-  public static VariableSensorPositionsNavigation variableSensorPositionsNavigation(
+  public static VariableSensorPositionsNavigation<?> variableSensorPositionsNavigation(
       @Param(value = "name", iS = "vs[{nOfSensors}]-nav-{arena}") String name,
       @Param(value = "initialRobotDirectionRange", dNPM = "m.range(min=0;max=0)") DoubleRange initialRobotDirectionRange,
       @Param(value = "robotRadius", dD = 0.05) double robotRadius,
@@ -80,7 +102,7 @@ public class Simulations {
       @Param(value = "sortAngles", dB = true) boolean sortAngles,
       @Param(value = "randomGenerator", dNPM = "m.defaultRG()") RandomGenerator randomGenerator
   ) {
-    return new VariableSensorPositionsNavigation(
+    return new VariableSensorPositionsNavigation<>(
         new NavigationEnvironment.Configuration(
             initialRobotDirectionRange,
             robotRadius,

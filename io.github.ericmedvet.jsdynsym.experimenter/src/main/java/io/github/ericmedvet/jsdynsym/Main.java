@@ -36,8 +36,8 @@ import io.github.ericmedvet.jsdynsym.control.navigation.NavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment;
+import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils.ScoreType;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor;
-import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.RewardType;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXorDrawer;
 import io.github.ericmedvet.jsdynsym.core.numerical.LinearCombination;
 import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
@@ -390,7 +390,10 @@ public class Main {
                 ds.rl.num.freeFormMlp(innerLayers = [2])
                 """
         )).apply(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)));
-    SequentialXorDrawer drawer = new SequentialXorDrawer(Configuration.DEFAULT, Set.of(RewardType.LIMITED));
+    SequentialXorDrawer drawer = new SequentialXorDrawer(
+        Configuration.DEFAULT,
+        Set.of(ScoreType.LIMITED)
+    );
     @SuppressWarnings("unchecked") Function<NumericalReinforcementLearningAgent<?>, SortedMap<Double, double[]>> trajF = (Function<NumericalReinforcementLearningAgent<?>, SortedMap<Double, double[]>>) nb
         .build(
             """
@@ -405,7 +408,9 @@ public class Main {
     drawer.show(sim.simulate(lac, 1, new DoubleRange(0, 30)));
     drawer.show(sim.simulate(ffMlp, 1, new DoubleRange(0, 30)));
     new VectorialTrajectoryDrawer(Configuration.DEFAULT, ReductionType.TSNE).show(trajF.apply(lac));
-    new VectorialTrajectoryDrawer(Configuration.DEFAULT, ReductionType.TSNE).show(trajF.apply(ffMlp));
+    new VectorialTrajectoryDrawer(Configuration.DEFAULT, ReductionType.TSNE).show(
+        trajF.apply(ffMlp)
+    );
   }
 
   public static void rlNavigation() {
