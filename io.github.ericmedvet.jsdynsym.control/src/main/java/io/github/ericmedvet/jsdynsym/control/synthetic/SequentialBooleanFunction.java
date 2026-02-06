@@ -91,7 +91,7 @@ public class SequentialBooleanFunction<CS> implements SingleRLAgentTask<Numerica
           new Step<>(
               new RewardedInput<>(bCase.input, reward),
               output,
-              new State(bCase.output, bCase.output)
+              new State(output, bCase.output)
           )
       );
     }
