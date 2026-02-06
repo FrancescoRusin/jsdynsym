@@ -28,17 +28,17 @@ import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask.Step;
 import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils;
 import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils.ScoreType;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialBooleanFunction.State;
 import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor;
-import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.State;
 import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.environment|env|e.sxor")
-public class SequentialXorFunctions {
+@Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.environment|env|e.sequentialBoolean|sBool")
+public class SequentialBooleanFunctions {
 
-  private SequentialXorFunctions() {
+  private SequentialBooleanFunctions() {
   }
 
   @Cacheable
@@ -67,7 +67,7 @@ public class SequentialXorFunctions {
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> avgScoreDelta(
-      @Param(value = "name", iS = "avg.delta[{rewardType}]") String name,
+      @Param(value = "name", iS = "avg.delta[{scoreType}]") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>>> beforeF,
       @Param(value = "format", dS = "%+5.3f") String format,
       @Param(value = "scoreType", dS = "unlimited") ScoreType scoreType,
@@ -114,7 +114,7 @@ public class SequentialXorFunctions {
 
   @Cacheable
   public static <X> FormattedNamedFunction<X, Double> avgScoreVariation(
-      @Param(value = "name", iS = "avg.delta[{rewardType}]") String name,
+      @Param(value = "name", iS = "avg.delta[{scoreType}]") String name,
       @Param(value = "of", dNPM = "f.identity()") Function<X, Simulation.Outcome<SingleAgentTask.Step<ReinforcementLearningAgent.RewardedInput<double[]>, double[], State>>> beforeF,
       @Param(value = "format", dS = "%+5.3f") String format,
       @Param(value = "scoreType", dS = "unlimited") ScoreType scoreType,

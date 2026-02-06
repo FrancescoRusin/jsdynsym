@@ -36,9 +36,12 @@ import io.github.ericmedvet.jsdynsym.control.navigation.NavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment;
+import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils;
 import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils.ScoreType;
-import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor;
-import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXorDrawer;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialBooleanFunction;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialBooleanFunction.State;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialBooleanFunctionDrawer;
+import io.github.ericmedvet.jsdynsym.core.bool.BooleanFunction;
 import io.github.ericmedvet.jsdynsym.core.numerical.LinearCombination;
 import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
@@ -53,6 +56,8 @@ import io.github.ericmedvet.jviz.core.plot.TrajectoryPlot.Data.ReductionType;
 import io.github.ericmedvet.jviz.core.plot.image.Configuration;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -317,27 +322,34 @@ public class Main {
 
   public static void sequentialXor() {
     NamedBuilder<?> nb = NamedBuilder.fromDiscovery();
-    @SuppressWarnings("unchecked") SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, SequentialXor.State> sim = (SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, SequentialXor.State>) nb
-        .build(
-            """
-                ds.s.sequentialXor(
-                  cases = 10 * ["00"] + 10 * ["01"] + 10 * ["10"] + 0 * ["11"]
-                )
-                """
-        );
+    SingleRLAgentTask<NumericalReinforcementLearningAgent<?>, double[], double[], ?, State> sim = new SequentialBooleanFunction<>(
+        Collections.nCopies(10, List.of("00", "01", "10", "11"))
+            .stream()
+            .flatMap(Collection::stream)
+            .map(BooleanUtils::stringToBitString)
+            .toList(),
+        BooleanFunction.from(
+            bits -> new boolean[]{bits[0] == bits[1], bits[0] != bits[1]
+            },
+            2,
+            2
+        ),
+        ScoreType.UNLIMITED,
+        true
+    );
     @SuppressWarnings("unchecked") NumericalReinforcementLearningAgent<?> lac = ((Function<NumericalReinforcementLearningAgent<?>, NumericalReinforcementLearningAgent<?>>) nb
         .build(
             """
                 ds.rl.num.linearActorCritic()
                 """
-        )).apply(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)));
+        )).apply(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 2)));
     @SuppressWarnings("unchecked") NumericalReinforcementLearningAgent<?> ffMlp = ((Function<NumericalReinforcementLearningAgent<?>, NumericalReinforcementLearningAgent<?>>) nb
         .build(
             """
                 ds.rl.num.freeFormMlp(innerLayers = [2])
                 """
-        )).apply(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 1)));
-    SequentialXorDrawer drawer = new SequentialXorDrawer(
+        )).apply(NumericalReinforcementLearningAgent.from(MultivariateRealFunction.from(2, 2)));
+    SequentialBooleanFunctionDrawer drawer = new SequentialBooleanFunctionDrawer(
         Configuration.DEFAULT,
         Set.of(ScoreType.LIMITED)
     );

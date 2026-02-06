@@ -24,7 +24,7 @@ import io.github.ericmedvet.jnb.datastructure.Listener;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.control.SingleRLAgentTask;
 import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils.ScoreType;
-import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialXor.State;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialBooleanFunction.State;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.rl.NumericalReinforcementLearningAgent;
 import io.github.ericmedvet.jsdynsym.core.rl.ReinforcementLearningAgent;
@@ -69,17 +69,16 @@ public class SequentialXor<CS> implements SingleRLAgentTask<NumericalReinforceme
       agent.reset();
     }
     for (double t = tRange.min(); t < tRange.max(); t += dT) {
-      double[] inputs = cases.get(c++ % cases.size());
-      double[] outputs = agent.step(t, inputs, reward);
+      double[] input = cases.get(c++ % cases.size());
+      double[] output = agent.step(t, input, reward);
       agentStateListener.listen(new Timed<>(t, agent.getState()));
-      double output = outputs[0];
-      double gtOutput = ((inputs[0] > 0) ^ (inputs[1] > 0)) ? 1 : -1;
+      double[] gtOutput = new double[]{((input[0] > 0) ^ (input[1] > 0)) ? 1 : -1};
       reward = BooleanUtils.computeScore(output, gtOutput, scoreType);
       states.put(
           t,
           new SingleAgentTask.Step<>(
-              new RewardedInput<>(inputs, reward),
-              outputs,
+              new RewardedInput<>(input, reward),
+              output,
               new State(output, gtOutput)
           )
       );
@@ -97,7 +96,4 @@ public class SequentialXor<CS> implements SingleRLAgentTask<NumericalReinforceme
     return Arrays.stream(inputs).mapToObj(i -> (i < 0) ? "0" : "1").collect(Collectors.joining());
   }
 
-  public record State(double output, double groundTruthOutput) {
-
-  }
 }
