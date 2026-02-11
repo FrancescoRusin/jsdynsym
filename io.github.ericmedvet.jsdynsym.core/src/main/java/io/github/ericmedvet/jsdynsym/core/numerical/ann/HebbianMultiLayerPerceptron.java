@@ -283,7 +283,7 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
     // update state and counter
     stepCounter += 1;
     state = new State(newWeights, newActivations);
-    return newActivations[neurons.length - 1];
+    return Arrays.copyOf(newActivations[neurons.length - 1], newActivations[neurons.length - 1].length);
   }
 
   @Override
