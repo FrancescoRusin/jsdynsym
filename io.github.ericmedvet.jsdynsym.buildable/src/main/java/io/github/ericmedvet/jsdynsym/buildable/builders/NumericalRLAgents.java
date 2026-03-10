@@ -51,6 +51,7 @@ public class NumericalRLAgents {
       @Param(value = "weightsUpdateInterval", dI = 1) int weightsUpdateInterval,
       @Param(value = "initialWeightRange", dNPM = "m.range(min=-0.01;max=0.01)") DoubleRange initialWeightRange,
       @Param(value = "randomGenerator", dNPM = "m.defaultRG()") RandomGenerator randomGenerator,
+      @Param(value = "maxWeightMagnitude", dD = 10.0) double maxWeightMagnitude,
       @Param(value = "weightInitializationType", dS = "random") HebbianMultiLayerPerceptron.WeightInitializationType weightInitializationType
   ) {
     List<String> variableNames = FreeFormPlasticMLPRLAgent.getVariableNames();
@@ -72,6 +73,7 @@ public class NumericalRLAgents {
         weightsUpdateInterval,
         weightInitializationType,
         initialWeightRange,
+        maxWeightMagnitude,
         randomGenerator
     );
   }

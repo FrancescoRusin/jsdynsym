@@ -45,6 +45,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
   private static final String PRE_SYNAPTIC_NEURON_INDEX = "preSynapticNeuronIdx";
   private static final String POST_SYNAPTIC_NEURON_INDEX = "postSynapticNeuronIdx";
   private static final String LAYER_INDEX = "layerIdx";
+  private final double[] biasActivationsHistory;
   private final MultiLayerPerceptron.ActivationFunction activationFunction;
   private final int weightsUpdateInterval;
   private final int[] neurons;
@@ -52,6 +53,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
   private final DoubleRange initialWeightRange;
   private final HebbianMultiLayerPerceptron.WeightInitializationType weightInitializationType;
   private final RandomGenerator randomGenerator;
+  private final DoubleRange weightRange;
   private NamedUnivariateRealFunction plasticityFunction;
   private int stepCounter;
   private State state;
@@ -64,6 +66,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
       int weightsUpdateInterval,
       HebbianMultiLayerPerceptron.WeightInitializationType weightInitializationType,
       DoubleRange initialWeightRange,
+      double maxWeightMagnitude,
       RandomGenerator randomGenerator
   ) {
     if (weightInitializationType.equals(HebbianMultiLayerPerceptron.WeightInitializationType.PARAMS)) {
@@ -76,7 +79,10 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
     this.weightsUpdateInterval = weightsUpdateInterval;
     this.weightInitializationType = weightInitializationType;
     this.initialWeightRange = initialWeightRange;
+    this.weightRange = new DoubleRange(-maxWeightMagnitude, maxWeightMagnitude);
+    this.biasActivationsHistory = new double[historyLength];
     this.randomGenerator = randomGenerator;
+    Arrays.fill(biasActivationsHistory, 1.0);
     reset();
   }
 
@@ -90,6 +96,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
       int weightsUpdateInterval,
       HebbianMultiLayerPerceptron.WeightInitializationType weightInitializationType,
       DoubleRange initialWeightRange,
+      double maxWeightMagnitude,
       RandomGenerator randomGenerator
   ) {
     this(
@@ -100,6 +107,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
         weightsUpdateInterval,
         weightInitializationType,
         initialWeightRange,
+        maxWeightMagnitude,
         randomGenerator
     );
   }
@@ -122,6 +130,8 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
       MultiLayerPerceptron.ActivationFunction activationFunction,
       NamedUnivariateRealFunction plasticityFunction,
       int[] neurons,
+      DoubleRange weightRange,
+      double[] biasActivationsHistory,
       boolean isUpdateStep
   ) {
     long age = state.age;
@@ -142,15 +152,17 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
           // statistics post synapse
           Statistics.from(state.activationsHistory[i][j], age - 1)
               .insert(inputParameters, Statistics.StatisticsScope.NEURON_POST);
-          for (int k = 1; k < newWeights[i - 1][j].length; k++) {
+          for (int k = 0; k < newWeights[i - 1][j].length; k++) {
             // statistics pre synapse
-            Statistics.from(state.activationsHistory[i - 1][k - 1], age - 1)
+            Statistics.from((k == 0) ? biasActivationsHistory : state.activationsHistory[i - 1][k - 1], age - 1)
                 .insert(inputParameters, Statistics.StatisticsScope.NEURON_PRE);
             inputParameters.put(LAYER_INDEX, (double) i);
             inputParameters.put(PRE_SYNAPTIC_NEURON_INDEX, (double) k);
             inputParameters.put(POST_SYNAPTIC_NEURON_INDEX, (double) j);
             // update weights
-            newWeights[i - 1][j][k] += plasticityFunction.computeAsDouble(inputParameters);
+            newWeights[i - 1][j][k] = weightRange.clip(
+                newWeights[i - 1][j][k] + plasticityFunction.computeAsDouble(inputParameters)
+            );
           }
         }
       }
@@ -269,6 +281,8 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
             activationFunction,
             plasticityFunction,
             neurons,
+            weightRange,
+            biasActivationsHistory,
             isUpdateStep
         );
         innerStepCounter += 1;
@@ -291,7 +305,17 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
   @Override
   public double[] step(double[] input, double reward) {
     boolean isUpdateStep = stepCounter > 0 && stepCounter % weightsUpdateInterval == 0;
-    StateAndOutput step = step(input, reward, state, activationFunction, plasticityFunction, neurons, isUpdateStep);
+    StateAndOutput step = step(
+        input,
+        reward,
+        state,
+        activationFunction,
+        plasticityFunction,
+        neurons,
+        weightRange,
+        biasActivationsHistory,
+        isUpdateStep
+    );
     stepCounter += 1;
     state = step.state;
     return step.output;

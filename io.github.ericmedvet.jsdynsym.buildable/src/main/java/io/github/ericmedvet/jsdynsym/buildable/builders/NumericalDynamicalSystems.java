@@ -127,6 +127,7 @@ public class NumericalDynamicalSystems {
       @Param(value = "weightsUpdateInterval", dI = 1) int weightsUpdateInterval,
       @Param(value = "activationFunction", dS = "tanh") MultiLayerPerceptron.ActivationFunction activationFunction,
       @Param(value = "initialWeightRange", dNPM = "m.range(min=-0.1;max=0.1)") DoubleRange initialWeightRange,
+      @Param(value = "maxWeightMagnitude", dD = 10.0) double maxWeightMagnitude,
       @Param(value = "randomGenerator", dNPM = "m.defaultRG()") RandomGenerator randomGenerator,
       @Param(value = "parametrizationType", dS = "synapse") HebbianMultiLayerPerceptron.ParametrizationType parametrizationType,
       @Param(value = "weightInitializationType", dS = "params") HebbianMultiLayerPerceptron.WeightInitializationType weightInitializationType
@@ -139,6 +140,7 @@ public class NumericalDynamicalSystems {
         learningRate,
         weightsUpdateInterval,
         initialWeightRange,
+        maxWeightMagnitude,
         randomGenerator,
         parametrizationType,
         weightInitializationType
