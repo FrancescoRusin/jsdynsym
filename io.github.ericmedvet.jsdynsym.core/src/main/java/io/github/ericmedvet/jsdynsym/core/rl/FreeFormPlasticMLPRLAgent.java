@@ -25,6 +25,7 @@ import io.github.ericmedvet.jnb.datastructure.Parametrized;
 import io.github.ericmedvet.jsdynsym.core.numerical.FrozenableNumericalDynamicalSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalStatelessSystem;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.HebbianMultiLayerPerceptron;
+import io.github.ericmedvet.jsdynsym.core.numerical.ann.MLPUtils;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.numerical.named.NamedUnivariateRealFunction;
 import java.util.ArrayList;
@@ -102,7 +103,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
     this(
         activationFunction,
         plasticityFunction,
-        MultiLayerPerceptron.countNeurons(nOfInput, innerNeurons, nOfOutput),
+        MLPUtils.countNeurons(nOfInput, innerNeurons, nOfOutput),
         historyLength,
         weightsUpdateInterval,
         weightInitializationType,
@@ -168,7 +169,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
       }
     }
     // compute output
-    double[][] newActivations = MultiLayerPerceptron.computeActivations(
+    double[][] newActivations = MLPUtils.computeActivations(
         input,
         newWeights,
         activationFunction,
@@ -186,14 +187,6 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
       for (int j = 0; j < src[i].length; j++) {
         copy[i][j] = Arrays.copyOf(src[i][j], src[i][j].length);
       }
-    }
-    return copy;
-  }
-
-  private static double[][] deepCopy2D(double[][] src) {
-    double[][] copy = new double[src.length][];
-    for (int i = 0; i < src.length; i++) {
-      copy[i] = Arrays.copyOf(src[i], src[i].length);
     }
     return copy;
   }
@@ -231,10 +224,10 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
   public FrozenableNumericalDynamicalSystem<?> dynamicalSystem() {
     final State initialState = new State(
         state.age,
-        HebbianMultiLayerPerceptron.deepCopy(state.weights, neurons),
+        MLPUtils.copy3D(state.weights),
         deepCopy3D(state.activationsHistory, historyLength, neurons),
         Arrays.copyOf(state.rewardsHistory, historyLength),
-        deepCopy2D(state.layersHistory),
+        MLPUtils.copy2D(state.layersHistory),
         Arrays.copyOf(state.networkHistory, historyLength)
     );
     return new FrozenableNumericalDynamicalSystem<State>() {
@@ -245,7 +238,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
       public NumericalStatelessSystem stateless() {
         return new MultiLayerPerceptron(
             activationFunction,
-            HebbianMultiLayerPerceptron.deepCopy(innerState.weights, neurons),
+            MLPUtils.copy3D(innerState.weights),
             neurons
         );
       }
@@ -331,7 +324,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
     stepCounter = 0;
     state = new State(
         0,
-        HebbianMultiLayerPerceptron.emptyArray(neurons),
+        MLPUtils.zeroWeights(neurons),
         emptyActivations(historyLength, neurons),
         new double[historyLength],
         new double[emptyActivations(historyLength, neurons).length][historyLength],
@@ -459,7 +452,7 @@ public class FreeFormPlasticMLPRLAgent implements NumericalTimeInvariantReinforc
 
     @Override
     public double[] getParams() {
-      return MultiLayerPerceptron.flat(weights);
+      return MLPUtils.flat(weights);
     }
 
     @Override
