@@ -86,10 +86,18 @@ public class MLPUtils {
     return concatenated;
   }
 
+  public static double[] copy1D(double[] src) {
+    return Arrays.copyOf(src, src.length);
+  }
+
+  public static int[] copy1D(int[] src) {
+    return Arrays.copyOf(src, src.length);
+  }
+
   public static double[][] copy2D(double[][] src) {
     double[][] copy = new double[src.length][];
     for (int i = 0; i < src.length; i++) {
-      copy[i] = Arrays.copyOf(src[i], src[i].length);
+      copy[i] = copy1D(src[i]);
     }
     return copy;
   }
@@ -99,7 +107,7 @@ public class MLPUtils {
     for (int i = 0; i < src.length; i++) {
       copy[i] = new double[src[i].length][];
       for (int j = 0; j < src[i].length; j++) {
-        copy[i][j] = Arrays.copyOf(src[i][j], src[i][j].length);
+        copy[i][j] = copy1D(src[i][j]);
       }
     }
     return copy;
@@ -197,6 +205,5 @@ public class MLPUtils {
   public static double[][][] zeroWeights(int[] neurons) {
     return unflat(new double[countWeights(neurons)], neurons);
   }
-
 
 }

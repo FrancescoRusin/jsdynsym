@@ -201,8 +201,24 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
 
   @Override
   public HebbianMultiLayerPerceptron copyOf() {
-    // TODO
-    return null;
+    HebbianMultiLayerPerceptron copy = new HebbianMultiLayerPerceptron(
+        activationFunction,
+        MLPUtils.copy3D(as),
+        MLPUtils.copy3D(bs),
+        MLPUtils.copy3D(cs),
+        MLPUtils.copy3D(ds),
+        MLPUtils.copy3D(initialWeights),
+        MLPUtils.copy1D(neurons),
+        learningRate,
+        weightsUpdateInterval,
+        initialWeightRange,
+        weightRange.max(),
+        randomGenerator,
+        parametrizationType,
+        weightInitializationType
+    );
+    copy.state = state.copyOf();
+    return copy;
   }
 
   @Override
@@ -324,7 +340,7 @@ public class HebbianMultiLayerPerceptron implements NumericalTimeInvariantDynami
     // update state and counter
     stepCounter += 1;
     state = new State(newWeights, newActivations);
-    return Arrays.copyOf(newActivations[neurons.length - 1], newActivations[neurons.length - 1].length);
+    return MLPUtils.copy1D(newActivations[neurons.length - 1]);
   }
 
   public record State(
