@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-control
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,28 +24,31 @@ import io.github.ericmedvet.jsdynsym.control.Environment;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.geometry.Segment;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationEnvironment.State;
-import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
 import java.util.List;
 import java.util.random.RandomGenerator;
 
-public class PointNavigationEnvironment implements NumericalDynamicalSystem<State>, Environment<double[], double[], State, NumericalDynamicalSystem<?>> {
+public class PointNavigationEnvironment<CS> implements NumericalDynamicalSystem<State>, Environment<double[], double[], State, NumericalDynamicalSystem<CS>> {
 
   public record Configuration(
-      DoubleRange initialRobotXRange,
-      DoubleRange initialRobotYRange,
-      DoubleRange targetXRange,
-      DoubleRange targetYRange,
       double robotMaxV,
       double collisionBlock,
-      Arena arena,
+      NavigationArena arena,
       boolean rescaleInput,
       RandomGenerator randomGenerator
-  ) implements io.github.ericmedvet.jsdynsym.control.navigation.Configuration {}
+  ) implements io.github.ericmedvet.jsdynsym.control.navigation.Configuration {
+
+  }
 
   public record State(
-      Configuration configuration, Point targetPosition, Point robotPosition, int nOfCollisions
-  ) implements io.github.ericmedvet.jsdynsym.control.navigation.State {}
+      Configuration configuration,
+      Point targetPosition,
+      Point robotPosition,
+      Point robotPreviousPosition,
+      boolean hasCollided
+  ) implements io.github.ericmedvet.jsdynsym.control.navigation.State {
+
+  }
 
   private final Configuration configuration;
   private State state;
@@ -56,8 +59,8 @@ public class PointNavigationEnvironment implements NumericalDynamicalSystem<Stat
   }
 
   @Override
-  public NumericalDynamicalSystem<?> exampleAgent() {
-    return MultivariateRealFunction.from(o -> new double[nOfInputs()], nOfOutputs(), nOfInputs());
+  public NumericalDynamicalSystem<CS> exampleAgent() {
+    return NumericalDynamicalSystem.from(nOfOutputs(), nOfInputs());
   }
 
   @Override
@@ -72,17 +75,21 @@ public class PointNavigationEnvironment implements NumericalDynamicalSystem<Stat
 
   @Override
   public void reset() {
+    Point robotPosition = new Point(
+        configuration.arena.startXRange().denormalize(configuration.randomGenerator.nextDouble()),
+        configuration.arena.startYRange().denormalize(configuration.randomGenerator.nextDouble())
+    );
     state = new State(
         configuration,
         new Point(
-            configuration.targetXRange.denormalize(configuration.randomGenerator.nextDouble()),
-            configuration.targetYRange.denormalize(configuration.randomGenerator.nextDouble())
+            configuration.arena.targetXRange()
+                .denormalize(configuration.randomGenerator.nextDouble()),
+            configuration.arena.targetYRange()
+                .denormalize(configuration.randomGenerator.nextDouble())
         ),
-        new Point(
-            configuration.initialRobotXRange.denormalize(configuration.randomGenerator.nextDouble()),
-            configuration.initialRobotYRange.denormalize(configuration.randomGenerator.nextDouble())
-        ),
-        0
+        robotPosition,
+        robotPosition,
+        false
     );
   }
 
@@ -130,7 +137,8 @@ public class PointNavigationEnvironment implements NumericalDynamicalSystem<Stat
         configuration,
         state.targetPosition,
         newRobotP,
-        state.nOfCollisions + (collisionT < 1d ? 1 : 0)
+        state.robotPosition,
+        collisionT < 1d
     );
     // compute observation
     double iX = new DoubleRange(0, configuration.arena.xExtent()).normalize(newRobotP.x());
@@ -149,7 +157,9 @@ public class PointNavigationEnvironment implements NumericalDynamicalSystem<Stat
     }
     double cramerDet = v1.y() * v2.x() - v1.x() * v2.y();
     if (cramerDet == 0) {
-      if (Math.abs(s2.p2().diff(s1.p1()).direction()) != Math.abs(s1.p2().diff(s1.p1()).direction())) {
+      if (Math.abs(s2.p2().diff(s1.p1()).direction()) != Math.abs(
+          s1.p2().diff(s1.p1()).direction()
+      )) {
         return new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
       }
       if (v1.x() > 0 == s2.p2().x() > s1.p2().x()) {

@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-core
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import java.util.Arrays;
 import java.util.function.BiFunction;
 import java.util.function.DoubleUnaryOperator;
 
-public interface NumericalStatelessSystem extends NumericalDynamicalSystem<StatelessSystem.State>, StatelessSystem<double[], double[]> {
+public interface NumericalStatelessSystem extends NumericalDynamicalSystem<StatelessSystem.State>, StatelessSystem<double[], double[]>, FrozenableNumericalDynamicalSystem<StatelessSystem.State> {
 
   @SuppressWarnings("unused")
   static NumericalStatelessSystem from(
@@ -89,5 +89,10 @@ public interface NumericalStatelessSystem extends NumericalDynamicalSystem<State
             .map(f)
             .toArray()
     );
+  }
+
+  @Override
+  default NumericalStatelessSystem stateless() {
+    return this;
   }
 }

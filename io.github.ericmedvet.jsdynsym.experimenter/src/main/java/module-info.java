@@ -1,8 +1,8 @@
 /*-
  * ========================LICENSE_START=================================
- * jsdynsym-core
+ * jsdynsym-experimenter
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,18 @@
  * limitations under the License.
  * =========================LICENSE_END==================================
  */
+module io.github.ericmedvet.jsdynsym.experimenter {
+  requires io.github.ericmedvet.jsdynsym.core;
+  requires io.github.ericmedvet.jnb.core;
+  requires io.github.ericmedvet.jnb.datastructure;
+  requires io.github.ericmedvet.jsdynsym.control;
+  requires io.github.ericmedvet.jsdynsym.buildable;
+  requires io.github.ericmedvet.jviz.core;
+  requires jcommander;
+  requires java.logging;
 
-package io.github.ericmedvet.jsdynsym.core.composed;
+  exports io.github.ericmedvet.jsdynsym.rl to jcommander;
 
-public abstract class AbstractComposed<C> implements Composed<C> {
-  private final C inner;
-
-  public AbstractComposed(C inner) {
-    this.inner = inner;
-  }
-
-  @Override
-  public C inner() {
-    return inner;
-  }
+  opens io.github.ericmedvet.jsdynsym.rl to io.github.ericmedvet.jnb.core;
+  opens io.github.ericmedvet.jsdynsym.rl.buildable to io.github.ericmedvet.jnb.core;
 }

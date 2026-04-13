@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-buildable
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,13 @@
 
 package io.github.ericmedvet.jsdynsym.buildable.builders;
 
+import io.github.ericmedvet.jnb.core.Cacheable;
 import io.github.ericmedvet.jnb.core.Discoverable;
 import io.github.ericmedvet.jnb.core.NamedBuilder;
 import io.github.ericmedvet.jnb.core.NamedParamMap;
 import io.github.ericmedvet.jnb.core.Param;
 import io.github.ericmedvet.jnb.core.ParamMap;
-import io.github.ericmedvet.jnb.datastructure.DoubleRange;
+import io.github.ericmedvet.jsdynsym.buildable.util.Naming;
 import io.github.ericmedvet.jsdynsym.control.Environment;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.core.DynamicalSystem;
@@ -39,17 +40,17 @@ public class SingleAgentTasks {
   }
 
   @SuppressWarnings("unused")
-  public static <C extends DynamicalSystem<O, A, ?>, O, A, S> SingleAgentTask<C, O, A, S> fromEnvironment(
-      @Param(value = "name", iS = "{environment.name}[{tRange.min};{tRange.max}]") String name,
-      @Param("environment") Environment<O, A, S, C> environment,
-      @Param(value = "stopCondition", dNPM = "predicate.not(condition = predicate.always())") Predicate<S> stopCondition,
-      @Param("tRange") DoubleRange tRange,
-      @Param("dT") double dT,
+  @Cacheable
+  public static <C extends DynamicalSystem<O, A, CS>, O, A, CS, ES> SingleAgentTask<C, O, A, CS, ES> fromEnvironment(
+      @Param(value = "name", iS = "{environment.name}") String name,
+      @Param("environment") Environment<O, A, ES, C> environment,
+      @Param(value = "stopCondition", dNPM = "predicate.not(condition = predicate.always())") Predicate<ES> stopCondition,
+      @Param(value = "resetAgent", dB = true) boolean resetAgent,
       @Param(value = "", injection = Param.Injection.BUILDER) NamedBuilder<?> nb,
       @Param(value = "", injection = Param.Injection.MAP) ParamMap map
   ) {
-    @SuppressWarnings("unchecked") Supplier<Environment<O, A, S, C>> supplier = () -> (Environment<O, A, S, C>) nb
+    @SuppressWarnings("unchecked") Supplier<Environment<O, A, ES, C>> supplier = () -> (Environment<O, A, ES, C>) nb
         .build((NamedParamMap) map.value("environment", ParamMap.Type.NAMED_PARAM_MAP));
-    return SingleAgentTask.fromEnvironment(supplier, stopCondition, tRange, dT);
+    return Naming.named(name, SingleAgentTask.fromEnvironment(supplier, stopCondition, resetAgent));
   }
 }

@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-control
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,17 @@ import io.github.ericmedvet.jsdynsym.control.SimulationOutcomeDrawer;
 import io.github.ericmedvet.jsdynsym.control.SingleAgentTask;
 import io.github.ericmedvet.jsdynsym.control.geometry.Point;
 import io.github.ericmedvet.jsdynsym.control.geometry.Segment;
+import io.github.ericmedvet.jsdynsym.control.navigation.NavigationEnvironment.Configuration.TargetSensing;
 import io.github.ericmedvet.jviz.core.util.GraphicsUtils;
-import java.awt.*;
-import java.awt.geom.*;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.Rectangle2D;
 import java.util.Arrays;
 import java.util.List;
 import java.util.SortedMap;
@@ -36,30 +44,31 @@ import java.util.stream.IntStream;
 
 public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> {
 
-  private static final int DEFAULT_SIDE_LENGTH = 400;
-
   private final Configuration configuration;
+  private final ArenaDrawer arenaDrawer;
 
   public NavigationDrawer(Configuration configuration) {
     this.configuration = configuration;
+    arenaDrawer = new ArenaDrawer(configuration.arenaConfiguration);
   }
 
   public record Configuration(
       Color robotColor,
-      Color targetColor,
-      Color segmentColor,
       Color infoColor,
       Color sensorsColor,
+      double landmarkThickness,
+      double landmarkSize,
       double robotThickness,
-      double targetThickness,
-      double segmentThickness,
+      double robotFillAlpha,
       double trajectoryThickness,
       double sensorsThickness,
       double sensorsFillAlpha,
-      double robotFillAlpha,
-      double targetSize,
-      double marginRate,
-      IOType ioType
+      IOType ioType,
+      boolean drawSensors,
+      boolean showSymbolicAction,
+      double symbolicActionMovementThresholdRate,
+      double symbolicActionTurnThreshold,
+      ArenaDrawer.Configuration arenaConfiguration
   ) {
 
     public enum IOType {
@@ -67,25 +76,34 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
     }
 
     public static final Configuration DEFAULT = new Configuration(
-        Color.MAGENTA,
-        Color.RED,
-        Color.DARK_GRAY,
-        Color.BLUE,
-        Color.CYAN,
-        2,
-        2,
-        3,
-        1,
-        1,
-        0.25,
-        0.25,
+        Color.PINK.darker(),
+        Color.BLUE.darker(),
+        Color.CYAN.darker(),
+        1.5,
         5,
-        0.01,
-        IOType.GRAPHIC
+        2,
+        0.25,
+        1,
+        1,
+        0.5,
+        IOType.GRAPHIC,
+        true,
+        true,
+        0.1,
+        Math.PI / 20,
+        ArenaDrawer.Configuration.DEFAULT
     );
   }
 
-  private static void drawRobot(Graphics2D g, Color c, double alpha, double th, Point p, double a, double r) {
+  private static void drawRobot(
+      Graphics2D g,
+      Color c,
+      double alpha,
+      double th,
+      Point p,
+      double a,
+      double r
+  ) {
     g.setStroke(new BasicStroke((float) th));
     Shape shape = new Ellipse2D.Double(p.x() - r, p.y() - r, 2d * r, 2d * r);
     g.setColor(GraphicsUtils.alphaed(c, alpha));
@@ -113,14 +131,14 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
     });
   }
 
-  private static void drawTarget(Graphics2D g, Color c, double th, double l, Point p) {
+  protected static void drawLandmark(Graphics2D g, Color c, double th, double l, Point p) {
     g.setStroke(new BasicStroke((float) th));
     g.setColor(c);
     g.draw(new Line2D.Double(p.x() - l / 2d, p.y(), p.x() + l / 2d, p.y()));
     g.draw(new Line2D.Double(p.x(), p.y() - l / 2d, p.x(), p.y() + l / 2d));
   }
 
-  private static void drawTrajectory(Graphics2D g, Color c, double th, List<Point> points) {
+  protected static void drawTrajectory(Graphics2D g, Color c, double th, List<Point> points) {
     g.setStroke(new BasicStroke((float) th));
     g.setColor(c);
     Path2D path = new Path2D.Double();
@@ -129,7 +147,7 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
     g.draw(path);
   }
 
-  private static void drawIO(
+  protected static void drawIO(
       Graphics2D g,
       Color c,
       double alpha,
@@ -171,7 +189,9 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
       double w = g.getFontMetrics().stringWidth("o");
       double h = g.getFontMetrics().getHeight() * .75;
       IntStream.range(0, in.length).forEach(i -> {
-        double nV = DoubleRange.UNIT.clip(rescaled ? DoubleRange.SYMMETRIC_UNIT.normalize(in[i]) : in[i]);
+        double nV = DoubleRange.UNIT.clip(
+            rescaled ? DoubleRange.SYMMETRIC_UNIT.normalize(in[i]) : in[i]
+        );
         double x = x0 + w * 1.5 * i;
         g.setColor(c);
         g.draw(new Rectangle2D.Double(x, y2 - h, w, h));
@@ -184,7 +204,9 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
       g.drawString("out:", 5, 5 + g.getFontMetrics().getHeight() * 3);
       double y3 = 5 + g.getFontMetrics().getHeight() * 3;
       IntStream.range(0, out.length).forEach(i -> {
-        double nV = DoubleRange.UNIT.clip(rescaled ? DoubleRange.SYMMETRIC_UNIT.normalize(out[i]) : out[i]);
+        double nV = DoubleRange.UNIT.clip(
+            rescaled ? DoubleRange.SYMMETRIC_UNIT.normalize(out[i]) : out[i]
+        );
         double x = x0 + w * 1.5 * i;
         g.setColor(c);
         g.draw(new Rectangle2D.Double(x, y3 - h, w, h));
@@ -201,16 +223,10 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
       SingleAgentTask.Step<double[], double[], NavigationEnvironment.State> step
   ) {
     Arena arena = step.state().configuration().arena();
-    // set transform
-    AffineTransform previousTransform = setTransform(g, arena);
     // draw arena
-    g.setStroke(
-        new BasicStroke(
-            (float) (configuration.segmentThickness / g.getTransform().getScaleX())
-        )
-    );
-    g.setColor(configuration.segmentColor);
-    arena.segments().forEach(s -> g.draw(new Line2D.Double(s.p1().x(), s.p1().y(), s.p2().x(), s.p2().y())));
+    arenaDrawer.draw(g, arena);
+    // set transform
+    AffineTransform previousTransform = arenaDrawer.setTransform(g, arena);
     // draw robot
     drawRobot(
         g,
@@ -221,21 +237,23 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
         step.state().robotDirection(),
         step.state().configuration().robotRadius()
     );
-    drawSensors(
-        g,
-        configuration.sensorsColor,
-        step.state().robotPosition(),
-        step.state().robotDirection(),
-        step.state().configuration().sensorAngles(),
-        step.state().configuration().sensorRange(),
-        configuration.sensorsThickness / g.getTransform().getScaleX()
-    );
+    if (configuration.drawSensors) {
+      drawSensors(
+          g,
+          configuration.sensorsColor,
+          step.state().robotPosition(),
+          step.state().robotDirection(),
+          step.state().configuration().sensorAngles(),
+          step.state().configuration().sensorRange(),
+          configuration.sensorsThickness / g.getTransform().getScaleX()
+      );
+    }
     // draw target
-    drawTarget(
+    drawLandmark(
         g,
-        configuration.targetColor,
-        configuration.targetThickness / g.getTransform().getScaleX(),
-        configuration.targetSize / g.getTransform().getScaleX(),
+        configuration.arenaConfiguration.targetColor(),
+        configuration.landmarkThickness / g.getTransform().getScaleX(),
+        configuration.landmarkSize / g.getTransform().getScaleX(),
         step.state().targetPosition()
     );
     // restore transformation
@@ -243,7 +261,18 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
     // draw info
     g.setStroke(new BasicStroke(1f));
     g.setColor(configuration.infoColor);
-    g.drawString("%.2fs".formatted(t), 5, 5 + g.getFontMetrics().getHeight());
+    g.drawString(
+        "%.2fs %s".formatted(
+            t,
+            configuration.showSymbolicAction ? step.state()
+                .symbolicAction(
+                    configuration.symbolicActionMovementThresholdRate,
+                    configuration.symbolicActionTurnThreshold
+                ) : ""
+        ),
+        5,
+        5 + g.getFontMetrics().getHeight()
+    );
     // draw input and output
     if (!configuration.ioType.equals(Configuration.IOType.OFF)) {
       drawIO(
@@ -253,7 +282,7 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
           configuration.ioType,
           step.observation(),
           step.action(),
-          step.state().configuration().senseTarget(),
+          !step.state().configuration().targetSensing().equals(TargetSensing.NONE),
           step.state().configuration().rescaleInput()
       );
     }
@@ -266,7 +295,7 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
   ) {
     Arena arena = map.values().iterator().next().state().configuration().arena();
     // set transform
-    AffineTransform previousTransform = setTransform(g, arena);
+    AffineTransform previousTransform = arenaDrawer.setTransform(g, arena);
     // draw robot and trajectory
     drawTrajectory(
         g,
@@ -277,7 +306,7 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
     // draw target and trajectory
     drawTrajectory(
         g,
-        configuration.targetColor,
+        configuration.arenaConfiguration.targetColor(),
         configuration.trajectoryThickness / g.getTransform().getScaleX(),
         map.values().stream().map(s -> s.state().targetPosition()).toList()
     );
@@ -294,31 +323,7 @@ public class NavigationDrawer implements SimulationOutcomeDrawer<SingleAgentTask
         .state()
         .configuration()
         .arena();
-    return new ImageInfo(
-        (int) (arena.xExtent() > arena.yExtent() ? DEFAULT_SIDE_LENGTH * arena.xExtent() / arena
-            .yExtent() : DEFAULT_SIDE_LENGTH),
-        (int) (arena.xExtent() > arena.yExtent() ? DEFAULT_SIDE_LENGTH : DEFAULT_SIDE_LENGTH * arena.yExtent() / arena
-            .xExtent())
-    );
+    return arenaDrawer.imageInfo(arena);
   }
 
-  private AffineTransform setTransform(Graphics2D g, Arena arena) {
-    double cX = g.getClipBounds().x;
-    double cY = g.getClipBounds().y;
-    double cW = g.getClipBounds().width;
-    double cH = g.getClipBounds().getHeight();
-    // compute transformation
-    double scale = Math.min(
-        cW / (1 + 2 * configuration.marginRate) / arena.xExtent(),
-        cH / (1 + 2 * configuration.marginRate) / arena.yExtent()
-    );
-    AffineTransform previousTransform = g.getTransform();
-    AffineTransform transform = AffineTransform.getScaleInstance(scale, scale);
-    transform.translate(
-        (cX / scale + cW / scale - arena.xExtent()) / 2d,
-        (cY / scale + cH / scale - arena.yExtent()) / 2d
-    );
-    g.setTransform(transform);
-    return previousTransform;
-  }
 }

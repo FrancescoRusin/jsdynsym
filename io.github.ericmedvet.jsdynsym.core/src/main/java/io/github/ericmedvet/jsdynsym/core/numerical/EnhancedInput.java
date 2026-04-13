@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-core
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 
 package io.github.ericmedvet.jsdynsym.core.numerical;
 
-import io.github.ericmedvet.jsdynsym.core.composed.AbstractComposed;
+import io.github.ericmedvet.jnb.datastructure.AbstractComposed;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.SortedMap;
@@ -86,7 +86,8 @@ public class EnhancedInput<S> extends AbstractComposed<NumericalDynamicalSystem<
       } else if (type.equals(Type.AVG)) {
         double[] lInput = new double[input.length];
         for (int i = 0; i < input.length; i = i + 1) {
-          lInput[i] = (input[i] + firstInput[i]) / 2d;
+          final int finalI = i;
+          lInput[i] = memory.values().stream().mapToDouble(mInput -> mInput[finalI]).average().orElse(0d);
         }
         System.arraycopy(lInput, 0, iInput, c, input.length);
         c = c + input.length;

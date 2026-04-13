@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-control
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
  */
 package io.github.ericmedvet.jsdynsym.control;
 
+import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 import java.util.Optional;
 import java.util.SortedMap;
 
@@ -32,7 +33,7 @@ public interface Simulation<T, S, O extends Simulation.Outcome<S>> {
     }
   }
 
-  O simulate(T t);
+  O simulate(T t, double dT, DoubleRange tRange);
 
   default Optional<T> example() {
     return Optional.empty();

@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-buildable
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,15 +24,22 @@ import io.github.ericmedvet.jnb.core.Cacheable;
 import io.github.ericmedvet.jnb.core.Discoverable;
 import io.github.ericmedvet.jnb.core.Param;
 import io.github.ericmedvet.jnb.datastructure.DoubleRange;
-import io.github.ericmedvet.jsdynsym.core.StatelessSystem;
+import io.github.ericmedvet.jnb.datastructure.NamedFunction;
+import io.github.ericmedvet.jnb.datastructure.Pair;
 import io.github.ericmedvet.jsdynsym.core.composed.InStepped;
 import io.github.ericmedvet.jsdynsym.core.composed.OutStepped;
 import io.github.ericmedvet.jsdynsym.core.composed.Stepped;
-import io.github.ericmedvet.jsdynsym.core.numerical.*;
+import io.github.ericmedvet.jsdynsym.core.numerical.EnhancedInput;
+import io.github.ericmedvet.jsdynsym.core.numerical.LinearCombination;
+import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
+import io.github.ericmedvet.jsdynsym.core.numerical.Noised;
+import io.github.ericmedvet.jsdynsym.core.numerical.NumericalDynamicalSystem;
+import io.github.ericmedvet.jsdynsym.core.numerical.Sinusoidal;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.DelayedRecurrentNetwork;
+import io.github.ericmedvet.jsdynsym.core.numerical.ann.HebbianMultiLayerPerceptron;
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.random.RandomGenerator;
 
 @Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.num")
@@ -41,167 +48,210 @@ public class NumericalDynamicalSystems {
   private NumericalDynamicalSystems() {
   }
 
-  public interface Builder<F extends NumericalDynamicalSystem<S>, S> extends BiFunction<List<String>, List<String>, F> {
-    default F apply(int nOfInputs, int nOfOutputs) {
-      return apply(
-          MultivariateRealFunction.varNames("x", nOfInputs),
-          MultivariateRealFunction.varNames("y", nOfOutputs)
-      );
-    }
-
-    static NumericalDynamicalSystems.Builder<NumericalDynamicalSystem<StatelessSystem.State>, StatelessSystem.State> empty() {
-      return (xVarNames, yVarNames) -> NumericalStatelessSystem.from(
-          xVarNames.size(),
-          yVarNames.size(),
-          (t, x) -> new double[yVarNames.size()]
-      );
-    }
+  @Cacheable
+  public static <S1, S2> Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<Pair<S1, S2>>> composition(
+      @Param("first") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S1>> first,
+      @Param("second") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S2>> second,
+      @Param("nOfInternalIOs") int nOfInternalIOs
+  ) {
+    return eNds -> first
+        .apply(MultivariateRealFunction.from(eNds.nOfInputs(), nOfInternalIOs))
+        .andThen(second.apply(MultivariateRealFunction.from(nOfInternalIOs, eNds.nOfOutputs())));
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static Builder<DelayedRecurrentNetwork, DelayedRecurrentNetwork.State> drn(
+  public static Function<NumericalDynamicalSystem<?>, DelayedRecurrentNetwork> drn(
       @Param(value = "timeRange", dNPM = "m.range(min=0;max=1)") DoubleRange timeRange,
       @Param(value = "innerNeuronsRatio", dD = 1d) double innerNeuronsRatio,
+      @Param(value = "innerNeurons", dD = 0) int innerNeurons,
       @Param(value = "activationFunction", dS = "tanh") MultiLayerPerceptron.ActivationFunction activationFunction,
       @Param(value = "threshold", dD = 0.1d) double threshold,
       @Param(value = "timeResolution", dD = 0.16666d) double timeResolution
   ) {
-    return (xVarNames, yVarNames) -> new DelayedRecurrentNetwork(
+    return eNds -> new DelayedRecurrentNetwork(
         activationFunction,
-        xVarNames.size(),
-        yVarNames.size(),
-        (int) Math.round(innerNeuronsRatio * (xVarNames.size() + yVarNames.size())),
+        eNds.nOfInputs(),
+        eNds.nOfOutputs(),
+        innerNeurons > 0 ? innerNeurons : ((int) Math.round(
+            innerNeuronsRatio * (eNds.nOfInputs() + eNds.nOfOutputs())
+        )),
         timeRange,
         threshold,
         timeResolution
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static <S> Builder<EnhancedInput<S>, S> enhanced(
+  public static <S> Function<NumericalDynamicalSystem<?>, EnhancedInput<S>> enhanced(
       @Param("windowT") double windowT,
-      @Param("inner") Builder<? extends NumericalDynamicalSystem<S>, S> inner,
+      @Param("inner") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S>> inner,
       @Param(
           value = "types", dSs = {"current", "trend", "avg"}) List<EnhancedInput.Type> types
   ) {
-    return (xVarNames, yVarNames) -> new EnhancedInput<>(
-        inner.apply(
-            xVarNames.stream()
-                .map(
-                    n -> types.stream()
-                        .map(t -> n + "_" + t.toString().toLowerCase())
-                        .toList()
-                )
-                .flatMap(List::stream)
-                .toList(),
-            yVarNames
-        ),
+    return eNds -> new EnhancedInput<>(
+        inner.apply(MultivariateRealFunction.from(eNds.nOfInputs(), eNds.nOfOutputs())),
         windowT,
         types
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static <S> Builder<NumericalDynamicalSystem<Stepped.State<S>>, Stepped.State<S>> inStepped(
-      @Param(value = "stepT", dD = 1) double interval,
-      @Param("inner") Builder<? extends NumericalDynamicalSystem<S>, S> inner
+  public static Function<NumericalDynamicalSystem<?>, MultivariateRealFunction> fromFunctions(
+      @Param(value = "name", iS = "{functions}") String name,
+      @Param("functions") List<Function<Double, Double>> functions
   ) {
-    return (xVarNames, yVarNames) -> NumericalDynamicalSystem.from(
-        new InStepped<>(inner.apply(xVarNames, yVarNames), interval),
-        xVarNames.size(),
-        yVarNames.size()
+    return eNds -> {
+      if (eNds.nOfInputs() != 1) {
+        throw new IllegalArgumentException("Functions-based NDS works only for 1 input");
+      }
+      if (eNds.nOfOutputs() != functions.size()) {
+        throw new IllegalArgumentException(
+            "Wrong number of outputs for functions-based NDS: %d functions, %d required outputs".formatted(
+                functions.size(),
+                eNds.nOfOutputs()
+            )
+        );
+      }
+      return MultivariateRealFunction.from(
+          NamedFunction.from(inputs -> functions.stream().mapToDouble(f -> f.apply(inputs[0])).toArray(), name),
+          1,
+          functions.size()
+      );
+    };
+  }
+
+  @Cacheable
+  public static Function<NumericalDynamicalSystem<?>, HebbianMultiLayerPerceptron> hebbianMlp(
+      @Param("innerLayers") List<Integer> innerLayers,
+      @Param(value = "learningRate", dD = 0.01) double learningRate,
+      @Param(value = "weightsUpdateInterval", dI = 1) int weightsUpdateInterval,
+      @Param(value = "activationFunction", dS = "tanh") MultiLayerPerceptron.ActivationFunction activationFunction,
+      @Param(value = "initialWeightRange", dNPM = "m.range(min=-0.1;max=0.1)") DoubleRange initialWeightRange,
+      @Param(value = "maxWeightMagnitude", dD = 10.0) double maxWeightMagnitude,
+      @Param(value = "randomGenerator", dNPM = "m.defaultRG()") RandomGenerator randomGenerator,
+      @Param(value = "parametrizationType", dS = "synapse") HebbianMultiLayerPerceptron.ParametrizationType parametrizationType,
+      @Param(value = "weightInitializationType", dS = "params") HebbianMultiLayerPerceptron.WeightInitializationType weightInitializationType
+  ) {
+    return eNds -> new HebbianMultiLayerPerceptron(
+        activationFunction,
+        eNds.nOfInputs(),
+        innerLayers.stream().mapToInt(i -> i).toArray(),
+        eNds.nOfOutputs(),
+        learningRate,
+        weightsUpdateInterval,
+        initialWeightRange,
+        maxWeightMagnitude,
+        randomGenerator,
+        parametrizationType,
+        weightInitializationType
     );
   }
 
-  @SuppressWarnings("unused")
-  public static Builder<MultiDimensionPolynomial, StatelessSystem.State> mdPolynomial(
-      @Param(value = "degree", dI = 1) int degree,
-      @Param(value = "clip", dB = true) boolean clip
-  ) {
-    return (xVarNames, yVarNames) -> new MultiDimensionPolynomial(xVarNames.size(), yVarNames.size(), degree, clip);
-  }
-
-  @SuppressWarnings("unused")
-  public static Builder<MultiDimensionPolynomial2D, StatelessSystem.State> mdPolynomial2d(
-      @Param(value = "degree", dI = 1) int degree,
-      @Param(value = "clip", dB = true) boolean clip
-  ) {
-    return (xVarNames, yVarNames) -> {
-      if (xVarNames.size() != 2) {
-        throw new IllegalArgumentException("Bruh");
-      }
-      return new MultiDimensionPolynomial2D(yVarNames.size(), degree, clip);
-    };
-  }
-
-  @SuppressWarnings("unused")
   @Cacheable
-  public static Builder<MultiLayerPerceptron, StatelessSystem.State> mlp(
+  public static <S> Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<Stepped.State<S>>> inStepped(
+      @Param(value = "stepT", dD = 1) double interval,
+      @Param("inner") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S>> inner
+  ) {
+    return eNds -> NumericalDynamicalSystem.from(
+        new InStepped<>(
+            inner.apply(MultivariateRealFunction.from(eNds.nOfInputs(), eNds.nOfOutputs())),
+            interval
+        ),
+        eNds.nOfInputs(),
+        eNds.nOfOutputs()
+    );
+  }
+
+  @Cacheable
+  public static Function<NumericalDynamicalSystem<?>, LinearCombination> linear(
+      @Param("zeroQ") boolean zeroQ
+  ) {
+    return eNds -> new LinearCombination(
+        eNds.nOfInputs(),
+        eNds.nOfOutputs(),
+        zeroQ
+    );
+  }
+
+  @Cacheable
+  public static Function<NumericalDynamicalSystem<?>, MultiLayerPerceptron> mlp(
       @Param(value = "innerLayerRatio", dD = 0.65) double innerLayerRatio,
-      @Param(value = "nOfInnerLayers", dI = 1) int nOfInnerLayers,
+      @Param(value = "nOfInnerLayers", dI = 0) int nOfInnerLayers,
+      @Param("innerLayers") List<Integer> innerLayers,
       @Param(value = "activationFunction", dS = "tanh") MultiLayerPerceptron.ActivationFunction activationFunction
   ) {
-    return (xVarNames, yVarNames) -> {
-      int[] innerNeurons = new int[nOfInnerLayers];
-      int centerSize = (int) Math.max(2, Math.round(xVarNames.size() * innerLayerRatio));
-      if (nOfInnerLayers > 1) {
-        for (int i = 0; i < nOfInnerLayers / 2; i++) {
-          innerNeurons[i] = xVarNames.size() + (centerSize - xVarNames.size()) / (nOfInnerLayers / 2 + 1) * (i + 1);
+    return eNds -> {
+      if (innerLayers.isEmpty()) {
+        int[] innerNeurons = new int[nOfInnerLayers];
+        int centerSize = (int) Math.max(2, Math.round(eNds.nOfInputs() * innerLayerRatio));
+        if (nOfInnerLayers > 1) {
+          for (int i = 0; i < nOfInnerLayers / 2; i++) {
+            innerNeurons[i] = eNds.nOfInputs() + (centerSize - eNds.nOfInputs()) / (nOfInnerLayers / 2 + 1) * (i + 1);
+          }
+          for (int i = nOfInnerLayers / 2; i < nOfInnerLayers; i++) {
+            innerNeurons[i] = centerSize + (eNds
+                .nOfOutputs() - centerSize) / (nOfInnerLayers / 2 + 1) * (i - nOfInnerLayers / 2);
+          }
+        } else if (nOfInnerLayers > 0) {
+          innerNeurons[0] = centerSize;
         }
-        for (int i = nOfInnerLayers / 2; i < nOfInnerLayers; i++) {
-          innerNeurons[i] = centerSize + (yVarNames
-              .size() - centerSize) / (nOfInnerLayers / 2 + 1) * (i - nOfInnerLayers / 2);
-        }
-      } else if (nOfInnerLayers > 0) {
-        innerNeurons[0] = centerSize;
+        return new MultiLayerPerceptron(
+            activationFunction,
+            eNds.nOfInputs(),
+            innerNeurons,
+            eNds.nOfOutputs()
+        );
+      } else {
+        return new MultiLayerPerceptron(
+            activationFunction,
+            eNds.nOfInputs(),
+            innerLayers.stream().mapToInt(i -> i).toArray(),
+            eNds.nOfOutputs()
+        );
       }
-      return new MultiLayerPerceptron(activationFunction, xVarNames.size(), innerNeurons, yVarNames.size());
     };
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static <S> Builder<Noised<S>, S> noised(
+  public static <S> Function<NumericalDynamicalSystem<?>, Noised<S>> noised(
       @Param(value = "inputSigma", dD = 0.01) double inputSigma,
       @Param(value = "outputSigma", dD = 0.01) double outputSigma,
       @Param(value = "randomGenerator", dNPM = "m.defaultRG()") RandomGenerator randomGenerator,
-      @Param("inner") Builder<? extends NumericalDynamicalSystem<S>, S> inner
+      @Param("inner") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S>> inner
   ) {
-    return (xVarNames, yVarNames) -> new Noised<>(
-        inner.apply(xVarNames, yVarNames),
+    return eNds -> new Noised<>(
+        inner.apply(MultivariateRealFunction.from(eNds.nOfInputs(), eNds.nOfOutputs())),
         inputSigma,
         outputSigma,
         randomGenerator
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static <S> Builder<NumericalDynamicalSystem<Stepped.State<S>>, Stepped.State<S>> outStepped(
+  public static <S> Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<Stepped.State<S>>> outStepped(
       @Param(value = "stepT", dD = 1) double interval,
-      @Param("inner") Builder<? extends NumericalDynamicalSystem<S>, S> inner
+      @Param("inner") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S>> inner
   ) {
-    return (xVarNames, yVarNames) -> NumericalDynamicalSystem.from(
-        new OutStepped<>(inner.apply(xVarNames, yVarNames), interval),
-        xVarNames.size(),
-        yVarNames.size()
+    return eNds -> NumericalDynamicalSystem.from(
+        new OutStepped<>(
+            inner.apply(MultivariateRealFunction.from(eNds.nOfInputs(), eNds.nOfOutputs())),
+            interval
+        ),
+        eNds.nOfInputs(),
+        eNds.nOfOutputs()
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static Builder<Sinusoidal, StatelessSystem.State> sin(
+  public static Function<NumericalDynamicalSystem<?>, Sinusoidal> sin(
       @Param(value = "p", dNPM = "m.range(min=-1.57;max=1.57)") DoubleRange phaseRange,
       @Param(value = "f", dNPM = "m.range(min=0;max=1)") DoubleRange frequencyRange,
       @Param(value = "a", dNPM = "m.range(min=0;max=1)") DoubleRange amplitudeRange,
       @Param(value = "b", dNPM = "m.range(min=-0.5;max=0.5)") DoubleRange biasRange
   ) {
-    return (xVarNames, yVarNames) -> new Sinusoidal(
-        xVarNames.size(),
-        yVarNames.size(),
+    return eNds -> new Sinusoidal(
+        eNds.nOfInputs(),
+        eNds.nOfOutputs(),
         phaseRange,
         frequencyRange,
         amplitudeRange,
@@ -209,16 +259,18 @@ public class NumericalDynamicalSystems {
     );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static <S> Builder<NumericalDynamicalSystem<Stepped.State<S>>, Stepped.State<S>> stepped(
+  public static <S> Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<Stepped.State<S>>> stepped(
       @Param(value = "stepT", dD = 0.1) double interval,
-      @Param("inner") Builder<? extends NumericalDynamicalSystem<S>, S> inner
+      @Param("inner") Function<NumericalDynamicalSystem<?>, NumericalDynamicalSystem<S>> inner
   ) {
-    return (xVarNames, yVarNames) -> NumericalDynamicalSystem.from(
-        new Stepped<>(inner.apply(xVarNames, yVarNames), interval),
-        xVarNames.size(),
-        yVarNames.size()
+    return eNds -> NumericalDynamicalSystem.from(
+        new Stepped<>(
+            inner.apply(MultivariateRealFunction.from(eNds.nOfInputs(), eNds.nOfOutputs())),
+            interval
+        ),
+        eNds.nOfInputs(),
+        eNds.nOfOutputs()
     );
   }
 }

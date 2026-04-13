@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-control
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,25 +21,22 @@ package io.github.ericmedvet.jsdynsym.control;
 
 import io.github.ericmedvet.jsdynsym.control.Simulation.Outcome;
 import io.github.ericmedvet.jviz.core.drawer.Drawer;
-import io.github.ericmedvet.jviz.core.drawer.ImageBuilder;
 import io.github.ericmedvet.jviz.core.drawer.Video;
 import io.github.ericmedvet.jviz.core.drawer.VideoBuilder;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public interface SimulationOutcomeDrawer<S> extends ImageBuilder<Simulation.Outcome<S>> {
+public interface SimulationOutcomeDrawer<S> extends Drawer<Simulation.Outcome<S>> {
   void drawSingle(Graphics2D g, double t, S s);
 
   @Override
-  default BufferedImage build(ImageInfo imageInfo, Simulation.Outcome<S> o) {
-    Drawer<SortedMap<Double, S>> lastDrawer = (g, map) -> drawSingle(g, map.lastKey(), map.get(map.lastKey()));
-    Drawer<SortedMap<Double, S>> allDrawer = this::drawAll;
-    return lastDrawer.andThen(allDrawer).build(imageInfo, o.snapshots());
+  default void draw(Graphics2D g, Outcome<S> sOutcome) {
+    drawSingle(g, sOutcome.snapshots().lastKey(), sOutcome.snapshots().lastEntry().getValue());
+    drawAll(g, sOutcome.snapshots());
   }
 
   default void drawAll(Graphics2D g, SortedMap<Double, S> ss) {

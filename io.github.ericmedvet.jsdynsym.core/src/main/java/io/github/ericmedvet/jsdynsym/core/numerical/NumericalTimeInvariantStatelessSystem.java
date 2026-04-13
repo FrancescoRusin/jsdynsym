@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-core
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,4 +23,4 @@ package io.github.ericmedvet.jsdynsym.core.numerical;
 import io.github.ericmedvet.jsdynsym.core.StatelessSystem;
 import io.github.ericmedvet.jsdynsym.core.TimeInvariantStatelessSystem;
 
-public interface NumericalTimeInvariantStatelessSystem extends NumericalDynamicalSystem<StatelessSystem.State>, TimeInvariantStatelessSystem<double[], double[]> {}
+public interface NumericalTimeInvariantStatelessSystem extends NumericalDynamicalSystem<StatelessSystem.State>, TimeInvariantStatelessSystem<double[], double[]>, NumericalStatelessSystem {}

@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-core
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +19,13 @@
  */
 module io.github.ericmedvet.jsdynsym.core {
   exports io.github.ericmedvet.jsdynsym.core;
+  exports io.github.ericmedvet.jsdynsym.core.bool;
   exports io.github.ericmedvet.jsdynsym.core.composed;
   exports io.github.ericmedvet.jsdynsym.core.numerical;
   exports io.github.ericmedvet.jsdynsym.core.numerical.ann;
   exports io.github.ericmedvet.jsdynsym.core.rl;
+  exports io.github.ericmedvet.jsdynsym.core.numerical.named;
 
   requires io.github.ericmedvet.jnb.datastructure;
+  requires java.desktop;
 }

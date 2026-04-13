@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-control
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,34 +28,27 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * @author "Eric Medvet" on 2024/07/24 for jgea
- */
-public class VariableSensorPositionsNavigation implements Simulation<Pair<List<Double>, NumericalDynamicalSystem<?>>, SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>, Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>> {
+public class VariableSensorPositionsNavigation<CS> implements Simulation<Pair<List<Double>, NumericalDynamicalSystem<CS>>, SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>, Simulation.Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>>> {
 
   private final NavigationEnvironment.Configuration configuration;
   private final int nOfSensors;
-  private final DoubleRange tRange;
-  private final double dT;
   private final boolean sortSensorAngles;
 
   public VariableSensorPositionsNavigation(
       NavigationEnvironment.Configuration configuration,
       int nOfSensors,
-      DoubleRange tRange,
-      double dT,
       boolean sortSensorAngles
   ) {
     this.configuration = configuration;
     this.nOfSensors = nOfSensors;
-    this.tRange = tRange;
-    this.dT = dT;
     this.sortSensorAngles = sortSensorAngles;
   }
 
   @Override
   public Outcome<SingleAgentTask.Step<double[], double[], NavigationEnvironment.State>> simulate(
-      Pair<List<Double>, NumericalDynamicalSystem<?>> pair
+      Pair<List<Double>, NumericalDynamicalSystem<CS>> pair,
+      double dT,
+      DoubleRange tRange
   ) {
     if (pair.first().size() != nOfSensors) {
       throw new IllegalArgumentException(
@@ -63,41 +56,38 @@ public class VariableSensorPositionsNavigation implements Simulation<Pair<List<D
               .formatted(pair.first().size(), nOfSensors)
       );
     }
-    return SingleAgentTask.fromEnvironment(
-        () -> new NavigationEnvironment(
-            sortSensorAngles ? configuration(pair.first()) : configuration(
-                pair.first().stream().sorted().toList()
-            )
-        ),
-        s -> false,
-        tRange,
-        dT
-    )
-        .simulate(pair.second());
+    SingleAgentTask<NumericalDynamicalSystem<CS>, double[], double[], CS, NavigationEnvironment.State> sat = SingleAgentTask
+        .fromEnvironment(
+            () -> new NavigationEnvironment<>(
+                sortSensorAngles ? configuration(pair.first()) : configuration(
+                    pair.first().stream().sorted().toList()
+                )
+            ),
+            s -> false,
+            true
+        );
+    return sat.simulate(pair.second(), dT, tRange);
   }
 
   private NavigationEnvironment.Configuration configuration(List<Double> angles) {
     return new NavigationEnvironment.Configuration(
-        configuration.initialRobotXRange(),
-        configuration.initialRobotYRange(),
         configuration.initialRobotDirectionRange(),
-        configuration.targetXRange(),
-        configuration.targetYRange(),
         configuration.robotRadius(),
         configuration.robotMaxV(),
         angles,
         configuration.sensorRange(),
-        configuration.senseTarget(),
+        configuration.targetSensing(),
         configuration.arena(),
         configuration.rescaleInput(),
+        configuration.relativeSpeed(),
         configuration.randomGenerator()
     );
   }
 
   @Override
-  public Optional<Pair<List<Double>, NumericalDynamicalSystem<?>>> example() {
+  public Optional<Pair<List<Double>, NumericalDynamicalSystem<CS>>> example() {
     List<Double> angles = Collections.nCopies(nOfSensors, 0d);
-    NavigationEnvironment env = new NavigationEnvironment(configuration(angles));
+    NavigationEnvironment<CS> env = new NavigationEnvironment<>(configuration(angles));
     return Optional.of(
         new Pair<>(
             angles,

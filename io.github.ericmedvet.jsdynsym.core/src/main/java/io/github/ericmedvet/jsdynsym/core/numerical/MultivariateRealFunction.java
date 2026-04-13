@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-core
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,9 +29,22 @@ import java.util.stream.IntStream;
 
 public interface MultivariateRealFunction extends NumericalTimeInvariantStatelessSystem {
 
-  double[] compute(double... input);
+  static MultivariateRealFunction from(int nOfInputs, int nOfOutputs) {
+    return from(
+        NamedFunction.from(
+            input -> new double[nOfOutputs],
+            "zeros[%d->%d]".formatted(nOfInputs, nOfOutputs)
+        ),
+        nOfInputs,
+        nOfOutputs
+    );
+  }
 
-  static MultivariateRealFunction from(Function<double[], double[]> f, int nOfInputs, int nOfOutputs) {
+  static MultivariateRealFunction from(
+      Function<double[], double[]> f,
+      int nOfInputs,
+      int nOfOutputs
+  ) {
     return new MultivariateRealFunction() {
       @Override
       public double[] compute(double... input) {
@@ -62,20 +75,21 @@ public interface MultivariateRealFunction extends NumericalTimeInvariantStateles
         .toList();
   }
 
-  @Override
-  default double[] step(double[] input) {
-    return compute(input);
-  }
-
   default MultivariateRealFunction andThen(MultivariateRealFunction other) {
     if (other.nOfInputs() != nOfOutputs()) {
       throw new IllegalArgumentException(
-          "Incompatible input/output size: input=%d, output=%d".formatted(other.nOfInputs(), nOfOutputs())
+          "Incompatible input/output size: input=%d, output=%d".formatted(
+              other.nOfInputs(),
+              nOfOutputs()
+          )
       );
     }
     MultivariateRealFunction thisMrf = this;
     return MultivariateRealFunction.from(
-        NamedFunction.from(in -> other.compute(thisMrf.compute(in)), this + "[then:%s]".formatted(other)),
+        NamedFunction.from(
+            in -> other.compute(thisMrf.compute(in)),
+            this + "[then:%s]".formatted(other)
+        ),
         thisMrf.nOfInputs(),
         other.nOfOutputs()
     );
@@ -83,9 +97,19 @@ public interface MultivariateRealFunction extends NumericalTimeInvariantStateles
 
   default MultivariateRealFunction andThen(DoubleUnaryOperator f) {
     return MultivariateRealFunction.from(
-        NamedFunction.from(in -> Arrays.stream(compute(in)).map(f).toArray(), "[all:%s]".formatted(f)),
+        NamedFunction.from(
+            in -> Arrays.stream(compute(in)).map(f).toArray(),
+            "[all:%s]".formatted(f)
+        ),
         nOfInputs(),
         nOfOutputs()
     );
+  }
+
+  double[] compute(double... input);
+
+  @Override
+  default double[] step(double[] input) {
+    return compute(input);
   }
 }

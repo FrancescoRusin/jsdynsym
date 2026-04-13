@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-core
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,11 @@
 package io.github.ericmedvet.jsdynsym.core;
 
 @FunctionalInterface
-public interface StatelessSystem<I, O> extends DynamicalSystem<I, O, StatelessSystem.State> {
+public interface StatelessSystem<I, O> extends DynamicalSystem<I, O, StatelessSystem.State>, FrozenableDynamicalSystem<I, O, StatelessSystem.State> {
 
-  record State() {
-    public static final State EMPTY = new State();
+  default <P> StatelessSystem<I, P> andThen(StatelessSystem<O, P> other) {
+    StatelessSystem<I, O> thisSystem = this;
+    return (t, input) -> other.step(t, thisSystem.step(t, input));
   }
 
   @Override
@@ -36,8 +37,12 @@ public interface StatelessSystem<I, O> extends DynamicalSystem<I, O, StatelessSy
   default void reset() {
   }
 
-  default <P> StatelessSystem<I, P> andThen(StatelessSystem<O, P> other) {
-    StatelessSystem<I, O> thisSystem = this;
-    return (t, input) -> other.step(t, thisSystem.step(t, input));
+  @Override
+  default StatelessSystem<I, O> stateless() {
+    return this;
+  }
+
+  record State() {
+    public static final State EMPTY = new State();
   }
 }

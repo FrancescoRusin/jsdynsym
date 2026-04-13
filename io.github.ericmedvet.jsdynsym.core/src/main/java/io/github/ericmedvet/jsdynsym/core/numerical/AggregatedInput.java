@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-core
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 
 package io.github.ericmedvet.jsdynsym.core.numerical;
 
-import io.github.ericmedvet.jsdynsym.core.composed.AbstractComposed;
+import io.github.ericmedvet.jnb.datastructure.AbstractComposed;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.SortedMap;

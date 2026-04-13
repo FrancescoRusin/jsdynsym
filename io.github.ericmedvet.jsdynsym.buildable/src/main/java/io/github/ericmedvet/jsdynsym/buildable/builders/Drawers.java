@@ -2,7 +2,7 @@
  * ========================LICENSE_START=================================
  * jsdynsym-buildable
  * %%
- * Copyright (C) 2023 - 2024 Eric Medvet
+ * Copyright (C) 2023 - 2025 Eric Medvet
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,38 +23,99 @@ package io.github.ericmedvet.jsdynsym.buildable.builders;
 import io.github.ericmedvet.jnb.core.Cacheable;
 import io.github.ericmedvet.jnb.core.Discoverable;
 import io.github.ericmedvet.jnb.core.Param;
+import io.github.ericmedvet.jsdynsym.control.drawer.VectorFieldDrawer;
+import io.github.ericmedvet.jsdynsym.control.drawer.VectorialTrajectoryDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.Arena;
 import io.github.ericmedvet.jsdynsym.control.navigation.NavigationDrawer;
 import io.github.ericmedvet.jsdynsym.control.navigation.PointNavigationDrawer;
-import io.github.ericmedvet.jsdynsym.control.navigation.VectorFieldDrawer;
 import io.github.ericmedvet.jsdynsym.control.pong.PongDrawer;
+import io.github.ericmedvet.jsdynsym.control.synthetic.BooleanUtils.ScoreType;
+import io.github.ericmedvet.jsdynsym.control.synthetic.SequentialBooleanFunctionDrawer;
+import io.github.ericmedvet.jviz.core.plot.TrajectoryPlot.Data.ReductionType;
+import io.github.ericmedvet.jviz.core.plot.image.Configuration;
+import java.util.LinkedHashSet;
+import java.util.List;
 
 @Discoverable(prefixTemplate = "dynamicalSystem|dynSys|ds.drawer|d")
 public class Drawers {
+
   private Drawers() {
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static NavigationDrawer navigation() {
-    return new NavigationDrawer(NavigationDrawer.Configuration.DEFAULT);
+  public static NavigationDrawer navigation(
+      @Param(value = "ioType", dS = "graphic") NavigationDrawer.Configuration.IOType ioType,
+      @Param(value = "showSensors", dB = true) boolean showSensors
+  ) {
+    return new NavigationDrawer(
+        new NavigationDrawer.Configuration(
+            NavigationDrawer.Configuration.DEFAULT.robotColor(),
+            NavigationDrawer.Configuration.DEFAULT.infoColor(),
+            NavigationDrawer.Configuration.DEFAULT.sensorsColor(),
+            NavigationDrawer.Configuration.DEFAULT.landmarkThickness(),
+            NavigationDrawer.Configuration.DEFAULT.landmarkSize(),
+            NavigationDrawer.Configuration.DEFAULT.robotThickness(),
+            NavigationDrawer.Configuration.DEFAULT.robotFillAlpha(),
+            NavigationDrawer.Configuration.DEFAULT.trajectoryThickness(),
+            NavigationDrawer.Configuration.DEFAULT.sensorsThickness(),
+            NavigationDrawer.Configuration.DEFAULT.sensorsFillAlpha(),
+            ioType,
+            showSensors,
+            NavigationDrawer.Configuration.DEFAULT.showSymbolicAction(),
+            NavigationDrawer.Configuration.DEFAULT.symbolicActionMovementThresholdRate(),
+            NavigationDrawer.Configuration.DEFAULT.symbolicActionTurnThreshold(),
+            NavigationDrawer.Configuration.DEFAULT.arenaConfiguration()
+        )
+    );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static PointNavigationDrawer pointNavigation() {
-    return new PointNavigationDrawer(PointNavigationDrawer.Configuration.DEFAULT);
+  public static PointNavigationDrawer pointNavigation(
+      @Param(value = "ioType", dS = "graphic") NavigationDrawer.Configuration.IOType ioType
+  ) {
+    return new PointNavigationDrawer(
+        new PointNavigationDrawer.Configuration(
+            PointNavigationDrawer.Configuration.DEFAULT.robotColor(),
+            PointNavigationDrawer.Configuration.DEFAULT.infoColor(),
+            PointNavigationDrawer.Configuration.DEFAULT.robotThickness(),
+            PointNavigationDrawer.Configuration.DEFAULT.robotFillAlpha(),
+            PointNavigationDrawer.Configuration.DEFAULT.landmarkThickness(),
+            PointNavigationDrawer.Configuration.DEFAULT.landmarkSize(),
+            PointNavigationDrawer.Configuration.DEFAULT.robotDotSize(),
+            PointNavigationDrawer.Configuration.DEFAULT.trajectoryThickness(),
+            PointNavigationDrawer.Configuration.DEFAULT.sensorsFillAlpha(),
+            ioType,
+            PointNavigationDrawer.Configuration.DEFAULT.arenaConfiguration()
+        )
+    );
   }
 
-  @SuppressWarnings("unused")
   @Cacheable
-  public static VectorFieldDrawer vectorField(@Param(value = "arena", dNPM = "empty") Arena.Prepared arena) {
+  public static SequentialBooleanFunctionDrawer sequentialBf(
+      @Param(value = "configuration", dNPM = "viz.plot.configuration.image()") Configuration configuration,
+      @Param("scoreTypes") List<ScoreType> scoreTypes
+  ) {
+    return new SequentialBooleanFunctionDrawer(configuration, new LinkedHashSet<>(scoreTypes));
+  }
+
+  @Cacheable
+  public static VectorFieldDrawer vectorField(
+      @Param(value = "arena", dNPM = "empty") Arena.Prepared arena
+  ) {
     return new VectorFieldDrawer(arena.arena(), VectorFieldDrawer.Configuration.DEFAULT);
   }
 
-  @SuppressWarnings("unused")
+  @Cacheable
+  public static VectorialTrajectoryDrawer vectorialTrajectory(
+      @Param(value = "configuration", dNPM = "viz.plot.configuration.image()") Configuration configuration,
+      @Param(value = "reductionType", dS = "pca") ReductionType reductionType
+  ) {
+    return new VectorialTrajectoryDrawer(configuration, reductionType);
+  }
+
   @Cacheable
   public static PongDrawer pong() {
     return new PongDrawer(PongDrawer.Configuration.DEFAULT);
   }
+
 }
