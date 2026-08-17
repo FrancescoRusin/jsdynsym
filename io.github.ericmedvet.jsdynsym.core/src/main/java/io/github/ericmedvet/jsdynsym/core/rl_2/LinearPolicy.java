@@ -1,5 +1,6 @@
 package io.github.ericmedvet.jsdynsym.core.rl_2;
 
+import io.github.ericmedvet.jnb.core.Cacheable;
 import io.github.ericmedvet.jsdynsym.core.numerical.LinearAlgebraUtils;
 
 import java.util.Arrays;
@@ -21,13 +22,26 @@ public class LinearPolicy extends GaussianNoisePolicy {
     }
 
     @Override
-    double[] meanAction(double[] state) {
+    public double[] meanAction(double[] state) {
         return LinearAlgebraUtils.product(weights, state);
     }
 
     @Override
-    double[] deterministicGradient(double[] state) {
-        return state;
+    protected double[][] deterministicJacobian(double[] state) {
+        double[][] jacobian = new double[weights.length][nOfParams()];
+        for (int i = 0; i < weights.length; ++i) {
+            Arrays.fill(jacobian[i], 0);
+            for (int j = 0; j < weights.length; ++j) {
+                jacobian[i * weights.length + j][j] = weights[i][j];
+            }
+        }
+        return jacobian;
+    }
+
+    @Override
+    @Cacheable
+    public int nOfParams() {
+        return weights.length * weights[0].length;
     }
 
     @Override

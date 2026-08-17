@@ -1,5 +1,6 @@
 package io.github.ericmedvet.jsdynsym.core.rl_2;
 
+import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.IntStream;
 
@@ -13,9 +14,11 @@ public abstract class GaussianNoisePolicy implements RLPolicy<double[]> {
         this.random = seed >= 0 ? new Random(seed) : new Random();
     }
 
-    abstract double[] meanAction(double[] state);
+    public abstract int nOfParams();
 
-    abstract double[] deterministicGradient(double[] state);
+    public abstract double[] meanAction(double[] state);
+
+    protected abstract double[][] deterministicJacobian(double[] state);
 
     @Override
     public double[] pickAction(double[] state) {
@@ -28,8 +31,20 @@ public abstract class GaussianNoisePolicy implements RLPolicy<double[]> {
 
     @Override
     public double[] logGradient(double[] state, double[] action) {
-        double[] meanAction = meanAction(state);
-        double[] deterministicGradient = deterministicGradient(state);
-        return IntStream.range(0, meanAction.length).mapToDouble(i -> (action[i] - meanAction[i]) * deterministicGradient[i] / (noiseSigma * noiseSigma)).toArray();
+        final double[] meanAction = meanAction(state);
+        final double[][] deterministicJacobian = deterministicJacobian(state);
+        final int nOfParams = nOfParams();
+        double[] logGradient = new double[nOfParams];
+        Arrays.fill(logGradient, 0);
+        for (int i = 0; i < meanAction.length; ++i) {
+            final int iCopy = i;
+            double[] actionIContribution = IntStream.range(0, nOfParams).mapToDouble(
+                    j -> logGradient[j] + (action[j] - meanAction[j]) * deterministicJacobian[iCopy][j] / (noiseSigma * noiseSigma)
+            ).toArray();
+            for (int j = 0; j < nOfParams; ++j) {
+                logGradient[j] += actionIContribution[j];
+            }
+        }
+        return logGradient;
     }
 }
