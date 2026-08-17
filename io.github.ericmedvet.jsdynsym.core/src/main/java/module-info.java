@@ -28,4 +28,5 @@ module io.github.ericmedvet.jsdynsym.core {
 
   requires io.github.ericmedvet.jnb.datastructure;
   requires java.desktop;
+    requires io.github.ericmedvet.jnb.core;
 }
