@@ -5,5 +5,5 @@ import io.github.ericmedvet.jnb.datastructure.Pair;
 import java.util.function.Consumer;
 
 public interface RLEpisodicTask<S, O>{
-    <P> Pair<P, O> runEpisode(RLMethod<P> method, int timesteps, Consumer<S> listener);
+    <P> O runEpisode(RLMethod<P> method, int timesteps, Consumer<S> listener);
 }
