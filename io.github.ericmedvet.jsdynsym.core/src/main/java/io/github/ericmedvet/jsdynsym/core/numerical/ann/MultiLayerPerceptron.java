@@ -26,12 +26,15 @@ import io.github.ericmedvet.jsdynsym.core.numerical.MultivariateRealFunction;
 import java.util.Arrays;
 import java.util.function.DoubleUnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class MultiLayerPerceptron implements MultivariateRealFunction, NumericalParametrized<MultiLayerPerceptron> {
 
   private final ActivationFunction activationFunction;
   private final double[][][] weights;
   private final int[] neurons;
+  private final double[][] cachedActivation;
+  private final double[] cachedInput;
 
   public MultiLayerPerceptron(
       ActivationFunction activationFunction,
@@ -41,6 +44,12 @@ public class MultiLayerPerceptron implements MultivariateRealFunction, Numerical
     this.activationFunction = activationFunction;
     this.weights = weights;
     this.neurons = neurons;
+    this.cachedActivation = new double[neurons.length][];
+    for (int i = 0; i < neurons.length; ++i) {
+      this.cachedActivation[i] = new double[neurons[i]];
+    }
+    this.cachedInput = new double[neurons[0]];
+    Arrays.fill(cachedInput, Double.POSITIVE_INFINITY);
     if (MLPUtils.flat(weights, neurons).length != MLPUtils.countWeights(neurons)) {
       throw new IllegalArgumentException(
           String.format(
@@ -83,30 +92,105 @@ public class MultiLayerPerceptron implements MultivariateRealFunction, Numerical
 
   @Override
   public double[] compute(double[] input) {
-    double[][] activationValues = new double[neurons.length][];
-    for (int i = 0; i < neurons.length; i++) {
-      activationValues[i] = new double[neurons[i]];
+    MLPUtils.computeActivations(input, weights, activationFunction, cachedActivation);
+    System.arraycopy(input, 0, cachedInput, 0, input.length);
+    return Arrays.copyOf(cachedActivation[neurons.length - 1], cachedActivation[neurons.length - 1].length);
+  }
+
+  public double[][] activationValues(double[] input) {
+    if (!Arrays.equals(input, cachedInput)) {
+      MLPUtils.computeActivations(input, weights, activationFunction, cachedActivation);
+      System.arraycopy(input, 0, cachedInput, 0, input.length);
     }
-    return MLPUtils.computeActivations(input, weights, activationFunction, activationValues)[neurons.length - 1];
+    double[][] result = new double[cachedActivation.length][];
+    for (int i = 0; i < cachedActivation.length; ++i) {
+      result[i] = Arrays.copyOf(cachedActivation[i], cachedActivation[i].length);
+    }
+    return result;
+  }
+
+  public double[][] derivedActivationValues(double[] input) {
+    if (!Arrays.equals(input, cachedInput)) {
+      MLPUtils.computeActivations(input, weights, activationFunction, cachedActivation);
+      System.arraycopy(input, 0, cachedInput, 0, input.length);
+    }
+    double[][] result = new double[cachedActivation.length][];
+    for (int i = 0; i < cachedActivation.length; ++i) {
+      result[i] = Arrays.stream(cachedActivation[i]).boxed().mapToDouble(activationFunction::derivative).toArray();
+    }
+    return result;
+  }
+
+  public double[][] jacobian(double[] input) {
+    final int nOfWeights = getParams().length;
+    final double[][] activationValues = activationValues(input);
+    final double[][] derivativeValues = derivedActivationValues(input);
+    final int[] layers = IntStream.range(0, nOfLayers() - 1).map(this::sizeOfLayer).toArray();
+    final double[][][] jacobianByWeight = new double[nOfLayers() - 1][][];
+    for (int i = 0; i < weights.length; ++i) {
+      jacobianByWeight[i] = new double[weights[i].length][];
+      for (int j = 0; j < weights[i].length; ++j) {
+        jacobianByWeight[i][j] = new double[weights[i][j].length];
+      }
+    }
+    final double[][] jacobian = new double[nOfOutputs()][nOfWeights];
+    for (int i = 0; i < nOfOutputs(); ++i) {
+
+      //output layer: the only weights that matter for output i are the ones of the i-th neuron; this does not hold for the ones before
+      for (int j = 0; j < i; ++j) {
+        Arrays.fill(jacobianByWeight[layers.length - 1][j], 0);
+      }
+      for (int j = i + 1; j < nOfOutputs(); ++j) {
+        Arrays.fill(jacobianByWeight[layers.length - 1][j], 0);
+      }
+      double[] prevDerivs = new double[layers[layers.length - 1]];
+      for (int j = 0; j < layers[layers.length - 1]; ++j) {
+        jacobianByWeight[layers.length - 1][i][j + 1] = derivativeValues[layers.length][i] * activationValues[layers.length - 1][j];
+        prevDerivs[j] = derivativeValues[layers.length][i] * derivativeValues[layers.length - 1][j] * weights[layers.length - 1][i][j + 1];
+      }
+      jacobianByWeight[layers.length - 1][i][0] = derivativeValues[layers.length][i];
+
+      //middle layers: chain rule
+      for (int nLayer = layers.length - 2; nLayer >= 0; --nLayer) {
+        for (int j = 0; j < layers[nLayer + 1]; ++j) {
+          for (int k = 0; k < layers[nLayer]; ++k) {
+            jacobianByWeight[nLayer][j][k + 1] = prevDerivs[j] * activationValues[nLayer][k];
+          }
+          jacobianByWeight[nLayer][j][0] = prevDerivs[j];
+        }
+        double[] newDerivs = new double[layers[nLayer]];
+        for (int j = 0; j < layers[nLayer]; ++j) {
+          double weightedSum = 0;
+          for (int k = 0; k < prevDerivs.length; ++k) {
+            weightedSum += prevDerivs[k] * weights[nLayer][k][j + 1];
+          }
+          newDerivs[j] = weightedSum * derivativeValues[nLayer][j];
+        }
+        prevDerivs = newDerivs;
+      }
+
+      //flatten the arrays and get the line of the Jacobian
+      System.arraycopy(MLPUtils.flat(jacobianByWeight), 0, jacobian[i], 0, nOfWeights);
+    }
+    return jacobian;
   }
 
   public enum ActivationFunction implements DoubleUnaryOperator {
-    RELU(x -> (x < 0) ? 0d : x, new DoubleRange(0d, Double.POSITIVE_INFINITY)), SIGMOID(
+    RELU(x -> (x < 0) ? 0d : x, y -> (y > 0) ? 1d : 0d, new DoubleRange(0d, Double.POSITIVE_INFINITY)), SIGMOID(
         x -> 1d / (1d + Math.exp(-x)),
+        y -> y * (1 - y),
         DoubleRange.UNIT
-    ), SIN(Math::sin, DoubleRange.SYMMETRIC_UNIT), TANH(
-        Math::tanh,
-        DoubleRange.SYMMETRIC_UNIT
-    ), SIGN(
-        Math::signum,
-        DoubleRange.SYMMETRIC_UNIT
-    ), IDENTITY(x -> x, DoubleRange.UNBOUNDED);
+    ), SIN(Math::sin, null, DoubleRange.SYMMETRIC_UNIT), //the value of sin(x) alone does not uniquely determine dsin(x)/dx
+    TANH(Math::tanh, y -> 1 - y * y, DoubleRange.SYMMETRIC_UNIT), SIGN(Math::signum, null, DoubleRange.SYMMETRIC_UNIT), //using signum for anything gradient-related is a bad idea
+    IDENTITY(x -> x, y -> 1, DoubleRange.UNBOUNDED);
 
     private final DoubleUnaryOperator f;
+    private final DoubleUnaryOperator df; //this is the derivative with the output of the neuron as input
     private final DoubleRange domain;
 
-    ActivationFunction(DoubleUnaryOperator f, DoubleRange domain) {
+    ActivationFunction(DoubleUnaryOperator f, DoubleUnaryOperator df, DoubleRange domain) {
       this.f = f;
+      this.df = df;
       this.domain = domain;
     }
 
@@ -115,12 +199,20 @@ public class MultiLayerPerceptron implements MultivariateRealFunction, Numerical
       return f.applyAsDouble(x);
     }
 
+    public double derivative(double x) {
+      return df.applyAsDouble(x);
+    }
+
     public DoubleRange getDomain() {
       return domain;
     }
 
     public DoubleUnaryOperator getF() {
       return f;
+    }
+
+    public DoubleUnaryOperator getDF() {
+      return df;
     }
   }
 
@@ -137,6 +229,7 @@ public class MultiLayerPerceptron implements MultivariateRealFunction, Numerical
         System.arraycopy(newWeights[l][s], 0, weights[l][s], 0, newWeights[l][s].length);
       }
     }
+    cachedInput[0] = Double.POSITIVE_INFINITY;
   }
 
   public int sizeOfLayer(
