@@ -97,7 +97,7 @@ public class MultiLayerPerceptron implements MultivariateRealFunction, Numerical
     return Arrays.copyOf(cachedActivation[neurons.length - 1], cachedActivation[neurons.length - 1].length);
   }
 
-  public double[][] activationValues(double[] input) {
+  private double[][] activationValues(double[] input) {
     if (!Arrays.equals(input, cachedInput)) {
       MLPUtils.computeActivations(input, weights, activationFunction, cachedActivation);
       System.arraycopy(input, 0, cachedInput, 0, input.length);
@@ -109,7 +109,7 @@ public class MultiLayerPerceptron implements MultivariateRealFunction, Numerical
     return result;
   }
 
-  public double[][] derivedActivationValues(double[] input) {
+  private double[][] derivedActivationValues(double[] input) {
     if (!Arrays.equals(input, cachedInput)) {
       MLPUtils.computeActivations(input, weights, activationFunction, cachedActivation);
       System.arraycopy(input, 0, cachedInput, 0, input.length);
@@ -121,7 +121,7 @@ public class MultiLayerPerceptron implements MultivariateRealFunction, Numerical
     return result;
   }
 
-  public double[][] jacobian(double[] input) {
+  public double[][] jacobianByWeights(double[] input) {
     final int nOfWeights = getParams().length;
     final double[][] activationValues = activationValues(input);
     final double[][] derivativeValues = derivedActivationValues(input);
