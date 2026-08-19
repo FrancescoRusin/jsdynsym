@@ -19,20 +19,22 @@
  */
 package io.github.ericmedvet.jsdynsym.core.rl_2;
 
+import io.github.ericmedvet.jnb.datastructure.DoubleRange;
+
 import java.util.Arrays;
 import java.util.Random;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
-public class ActorCriticMethod implements RLMethod<ActorCriticMethod.MethodState> {
+public class ActorCriticMethod implements RLMethod<double[], double[]> {
 
   public record MethodState(double[] actorWeights, double[] criticWeights) {}
 
   public enum Model { LINEAR, NEURAL, TILES }
 
-  private final Supplier<MethodState> initialWeightsSupplier;
-  private final RLPolicy<double[]> actor;
+  private final RLPolicy<double[], double[]> actor;
   private final RLCritic<double[]> critic;
+  private final Random rng;
   private final double[] lastObservation;
   private final double[] lastAction;
   private final double actorLearningRate;
@@ -45,16 +47,16 @@ public class ActorCriticMethod implements RLMethod<ActorCriticMethod.MethodState
   private static final double DEFAULT_DISCOUNT_FACTOR = .99;
 
   public ActorCriticMethod(
-      Supplier<MethodState> initialWeightsSupplier,
       int nOfInputs,
       int nOfOutputs,
       Model actorModel,
       Model criticModel,
       double actorLearningRate,
       double criticLearningRate,
-      double discountFactor
+      double discountFactor,
+      int randomSeed
   ) {
-    this.initialWeightsSupplier = initialWeightsSupplier;
+    this.rng = randomSeed >= 0 ? new Random(randomSeed) : new Random();
     this.lastObservation = new double[nOfInputs];
     Arrays.fill(this.lastObservation, 0);
     this.lastAction = new double[nOfOutputs];
@@ -76,42 +78,39 @@ public class ActorCriticMethod implements RLMethod<ActorCriticMethod.MethodState
   }
 
   public ActorCriticMethod(
-      Supplier<MethodState> initialWeightsSupplier,
       int nOfInputs,
       int nOfOutputs,
       Model actorModel,
-      Model criticModel
+      Model criticModel,
+      int randomSeed
   ) {
     this(
-        initialWeightsSupplier,
         nOfInputs,
         nOfOutputs,
         actorModel,
         criticModel,
         DEFAULT_ACTOR_LR,
         DEFAULT_CRITIC_LR,
-        DEFAULT_DISCOUNT_FACTOR
+        DEFAULT_DISCOUNT_FACTOR,
+            randomSeed
     );
   }
 
   public ActorCriticMethod(
-      int nOfActorWeights,
-      int nOfCriticWeights,
-      Random random,
-      int nOfInputs,
-      int nOfOutputs,
-      Model actorModel,
-      Model criticModel
+          int nOfInputs,
+          int nOfOutputs,
+          Model actorModel,
+          Model criticModel
   ) {
     this(
-        () -> new MethodState(
-            IntStream.range(0, nOfActorWeights).boxed().mapToDouble(d -> random.nextDouble()).toArray(),
-            IntStream.range(0, nOfCriticWeights).boxed().mapToDouble(d -> random.nextDouble()).toArray()
-        ),
-        nOfInputs,
-        nOfOutputs,
-        actorModel,
-        criticModel
+            nOfInputs,
+            nOfOutputs,
+            actorModel,
+            criticModel,
+            DEFAULT_ACTOR_LR,
+            DEFAULT_CRITIC_LR,
+            DEFAULT_DISCOUNT_FACTOR,
+            -1
     );
   }
 
@@ -142,15 +141,21 @@ public class ActorCriticMethod implements RLMethod<ActorCriticMethod.MethodState
   }
 
   @Override
-  public MethodState getState() {
-    return new MethodState(actor.getParams(), critic.getParams());
+  public double[] getCurrentPolicyParams() {
+    return actor.getParams();
   }
+
+  public double[] getCurrentCriticParams() {return critic.getParams();}
 
   @Override
   public void reset() {
-    MethodState weights = initialWeightsSupplier.get();
-    this.actor.setParams(weights.actorWeights);
-    this.critic.setParams(weights.criticWeights);
+    this.actor.randomize(rng, DoubleRange.SYMMETRIC_UNIT);
+    this.critic.randomize(rng, DoubleRange.SYMMETRIC_UNIT);
+    this.currentWeightDecay = 1;
+  }
+
+  @Override
+  public void episodeReset() {
     this.currentWeightDecay = 1;
   }
 }

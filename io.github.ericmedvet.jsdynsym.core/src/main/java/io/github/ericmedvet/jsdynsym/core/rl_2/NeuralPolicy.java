@@ -20,11 +20,19 @@
 package io.github.ericmedvet.jsdynsym.core.rl_2;
 
 import io.github.ericmedvet.jsdynsym.core.numerical.ann.MultiLayerPerceptron;
+import java.util.stream.IntStream;
 
 public class NeuralPolicy extends GaussianNoisePolicy {
   private final MultiLayerPerceptron mlp;
 
-  NeuralPolicy(int nOfInputs, int[] innerLayers, int nOfOutputs, MultiLayerPerceptron.ActivationFunction activationFunction, double noiseSigma, int seed) {
+  NeuralPolicy(
+      int nOfInputs,
+      int[] innerLayers,
+      int nOfOutputs,
+      MultiLayerPerceptron.ActivationFunction activationFunction,
+      double noiseSigma,
+      int seed
+  ) {
     super(noiseSigma, seed);
     this.mlp = new MultiLayerPerceptron(
         activationFunction,

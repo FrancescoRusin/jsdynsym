@@ -23,10 +23,10 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.IntStream;
 
-public abstract class GaussianNoisePolicy implements RLPolicy<double[]> {
-  private final double noiseSigma;
+public abstract class GaussianNoisePolicy implements RLPolicy<double[], double[]> {
+  protected final double noiseSigma;
   private final Random random;
-  public static final double DEFAULT_NOISE_SIGMA = 1;
+  public static final double DEFAULT_NOISE_SIGMA = .1;
 
   GaussianNoisePolicy(double noiseSigma, int seed) {
     this.noiseSigma = noiseSigma;
@@ -57,7 +57,7 @@ public abstract class GaussianNoisePolicy implements RLPolicy<double[]> {
       final int iCopy = i;
       double[] actionIContribution = IntStream.range(0, nOfParams)
           .mapToDouble(
-              j -> logGradient[j] + (action[j] - meanAction[j]) * deterministicJacobian[iCopy][j] / (noiseSigma * noiseSigma)
+              j -> logGradient[j] + (action[iCopy] - meanAction[iCopy]) * deterministicJacobian[iCopy][j] / (noiseSigma * noiseSigma)
           )
           .toArray();
       for (int j = 0; j < nOfParams; ++j) {

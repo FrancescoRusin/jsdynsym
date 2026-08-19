@@ -56,7 +56,6 @@ public class LinearPolicy extends GaussianNoisePolicy {
     return jacobian;
   }
 
-
   @Override
   public int nOfInputs() {
     return weights[0].length;

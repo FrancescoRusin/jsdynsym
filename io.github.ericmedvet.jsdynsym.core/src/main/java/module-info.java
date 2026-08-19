@@ -30,4 +30,6 @@ module io.github.ericmedvet.jsdynsym.core {
   requires java.desktop;
   requires io.github.ericmedvet.jnb.core;
   requires org.jspecify;
+    requires org.lwjgl.glfw;
+    requires org.lwjgl.opengl;
 }

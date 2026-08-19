@@ -19,35 +19,10 @@
  */
 package io.github.ericmedvet.jsdynsym.core.rl_2;
 
-public interface RLMethod<S, A> {
-  double[] getCurrentPolicyParams();
+public interface RLTask<I, O, S> {
+  S executeAction(S currentState, O action);
 
-  void reset();
+  I computeNewInput(S state);
 
-  void episodeReset();
-
-  A step(double t, S input, double reward);
-
-  static <S> RLMethod<S, Double> singleDoubleMethod(RLMethod<S, double[]> method) {
-    return new RLMethod<>() {
-      @Override
-      public double[] getCurrentPolicyParams() {
-        return method.getCurrentPolicyParams();
-      }
-
-      @Override
-      public void reset() {
-        method.reset();
-      }
-
-      public void episodeReset() {
-        method.episodeReset();
-      }
-
-      @Override
-      public Double step(double t, S input, double reward) {
-        return method.step(t, input, reward)[0];
-      }
-    };
-  }
+  double computeReward(S state);
 }

@@ -22,7 +22,7 @@ package io.github.ericmedvet.jsdynsym.core.rl_2;
 import io.github.ericmedvet.jnb.core.Cacheable;
 import io.github.ericmedvet.jnb.datastructure.NumericalParametrized;
 
-public interface RLPolicy<S> extends NumericalParametrized<RLPolicy<S>> {
+public interface RLPolicy<S, A> extends NumericalParametrized<RLPolicy<S, A>> {
   @Cacheable
   int nOfInputs();
 
@@ -32,7 +32,47 @@ public interface RLPolicy<S> extends NumericalParametrized<RLPolicy<S>> {
   @Cacheable
   int nOfParams();
 
-  double[] pickAction(S state);
+  A pickAction(S state);
 
-  double[] logGradient(S state, double[] action);
+  double[] logGradient(S state, A action);
+
+  static <S> RLPolicy<S, Double> singleDoublePolicy(RLPolicy<S, double[]> policy) {
+    return new RLPolicy<>() {
+
+      @Override
+      public int nOfInputs() {
+        return policy.nOfInputs();
+      }
+
+      @Override
+      public int nOfOutputs() {
+        return 1;
+      }
+
+      @Override
+      public int nOfParams() {
+        return policy.nOfParams();
+      }
+
+      @Override
+      public Double pickAction(S state) {
+        return policy.pickAction(state)[0];
+      }
+
+      @Override
+      public double[] logGradient(S state, Double action) {
+        return policy.logGradient(state, new double[]{action});
+      }
+
+      @Override
+      public double[] getParams() {
+        return policy.getParams();
+      }
+
+      @Override
+      public void setParams(double[] param) {
+        policy.setParams(param);
+      }
+    };
+  }
 }
