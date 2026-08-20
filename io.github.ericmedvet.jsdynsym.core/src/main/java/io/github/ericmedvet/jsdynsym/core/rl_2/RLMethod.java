@@ -21,12 +21,13 @@ package io.github.ericmedvet.jsdynsym.core.rl_2;
 
 public interface RLMethod<S, A> {
   double[] getCurrentPolicyParams();
+  double[] getCurrentCriticParams();
 
   void reset();
 
   void episodeReset();
 
-  A step(double t, S input, double reward);
+  A step(double t, S input, double reward, boolean terminal);
 
   static <S> RLMethod<S, Double> singleDoubleMethod(RLMethod<S, double[]> method) {
     return new RLMethod<>() {
@@ -34,6 +35,9 @@ public interface RLMethod<S, A> {
       public double[] getCurrentPolicyParams() {
         return method.getCurrentPolicyParams();
       }
+
+      @Override
+      public double[] getCurrentCriticParams() {return method.getCurrentCriticParams();}
 
       @Override
       public void reset() {
@@ -45,8 +49,8 @@ public interface RLMethod<S, A> {
       }
 
       @Override
-      public Double step(double t, S input, double reward) {
-        return method.step(t, input, reward)[0];
+      public Double step(double t, S input, double reward, boolean terminal) {
+        return method.step(t, input, reward, terminal)[0];
       }
     };
   }

@@ -74,13 +74,39 @@ public class CartPoleVisualizer implements Consumer<CartPoleProblem.CartPoleStat
 
     glClearColor(1f, 1f, 1f, 1.0f);
 
+    for (int i = 0; i < 60; ++i) {
+      if (glfwWindowShouldClose(window))
+        break;
+
+      double cos = Math.cos(cache.getFirst().poleAngle());
+      double sin = Math.sin(cache.getFirst().poleAngle());
+      double stateX = cache.getFirst().x() * .1;
+      glClear(GL_COLOR_BUFFER_BIT);
+      glColor3f(0f, 0f, 0f);
+      glLineWidth(10f);
+      glBegin(GL_LINES);
+      glVertex3d(-1d, -.5d, 0d);
+      glVertex3d(1d, -.5d, 0d);
+      glEnd();
+
+      glColor3f(0f, 0f, 1f);
+      drawRect(stateX - .2, -.35, stateX - .2, -.65, stateX + .2, -.65, stateX + .2, -.35);
+
+      glColor3f(1f, 0f, 0f);
+      drawRect(stateX - .1 * cos, -.5 + .1 * sin, stateX - .1 * cos + .8 * sin, -.5 + .1 * sin + .8 * cos,
+              stateX + .1 * cos + .8 * sin, -.5 - .1 * sin + .8 * cos, stateX + .1 * cos, -.5 - .1 * sin);
+
+      glfwSwapBuffers(window);
+      glfwPollEvents();
+    }
+
     for (CartPoleProblem.CartPoleState state : cache) {
       if (glfwWindowShouldClose(window))
         break;
 
       double cos = Math.cos(state.poleAngle());
       double sin = Math.sin(state.poleAngle());
-      for (int i = 0; i < 10; ++i) {
+      double stateX = state.x() * .1;
         glClear(GL_COLOR_BUFFER_BIT);
         glColor3f(0f, 0f, 0f);
         glLineWidth(10f);
@@ -90,15 +116,14 @@ public class CartPoleVisualizer implements Consumer<CartPoleProblem.CartPoleStat
         glEnd();
 
         glColor3f(0f, 0f, 1f);
-        drawRect(state.x() - .2, -.35, state.x() - .2, -.65, state.x() + .2, -.65, state.x() + .2, -.35);
+        drawRect(stateX - .2, -.35, stateX - .2, -.65, stateX + .2, -.65, stateX + .2, -.35);
 
         glColor3f(1f, 0f, 0f);
-        drawRect(state.x() - .1 * cos, -.5 + .1 * sin, state.x() - .1 * cos + .8 * sin, -.5 + .1 * sin + .8 * cos,
-                state.x() + .1 * cos + .8 * sin, -.5 - .1 * sin + .8 * cos, state.x() + .1 * cos, -.5 - .1 * sin);
+        drawRect(stateX - .1 * cos, -.5 + .1 * sin, stateX - .1 * cos + .8 * sin, -.5 + .1 * sin + .8 * cos,
+                stateX + .1 * cos + .8 * sin, -.5 - .1 * sin + .8 * cos, stateX + .1 * cos, -.5 - .1 * sin);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-      }
     }
 
     glfwDestroyWindow(window);

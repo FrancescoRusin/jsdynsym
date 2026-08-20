@@ -22,18 +22,26 @@ package io.github.ericmedvet.jsdynsym.core.rl_2;
 import io.github.ericmedvet.jsdynsym.core.rl_2.cartpole.CartPoleProblem;
 import io.github.ericmedvet.jsdynsym.core.rl_2.cartpole.CartPoleVisualizer;
 
-import java.util.Arrays;
-
 public class Main {
   static void main(String[] args) {
+    rlTest();
+  }
+
+  private static void rlTest() {
     CartPoleVisualizer visualizer = new CartPoleVisualizer();
     CartPoleProblem problem = new CartPoleProblem();
     RLMethod<double[], Double> method = RLMethod.singleDoubleMethod(new ActorCriticMethod(4, 1, ActorCriticMethod.Model.LINEAR, ActorCriticMethod.Model.LINEAR));
-    for (int i = 0; i < 100000; ++i) {
-      problem.runEpisode(method, 1800, _ -> {});
+    for (int i = 0; i < 10000; ++i) {
+      problem.runEpisode(method, 1000, _ -> {});
       method.episodeReset();
+      /*if (i % 100 == 0) {
+        System.out.print("Current actor: ");
+        System.out.println(Arrays.stream(method.getCurrentPolicyParams()).boxed().toList());
+        System.out.print("Current critic: ");
+        System.out.println(Arrays.stream(method.getCurrentCriticParams()).boxed().toList());
+      }*/
     }
-    problem.runEpisode(method, 1800, visualizer);
+    problem.runEpisode(method, 1000, visualizer);
     visualizer.renderCache();
   }
 }

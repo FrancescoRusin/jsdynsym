@@ -30,12 +30,18 @@ public interface RLEpisodicTask<I, O, S> extends RLTask<I, O, S> {
 
   default List<S> runEpisode(RLMethod<I, O> method, int nOfTicks, Consumer<S> listener) {
     S state = initialize();
-    List<S> outcome = new ArrayList<>(List.of(state));
-    listener.accept(state);
-    for (int t = 0; t < nOfTicks && !stopCondition(state); ++t) {
-      state = executeAction(state, method.step(t, computeNewInput(state), computeReward(state)));
+    List<S> outcome = new ArrayList<>();
+    boolean stop = false;
+    for (int t = 0; t < nOfTicks && !stop; ++t) {
       outcome.add(state);
       listener.accept(state);
+      stop = stopCondition(state);
+      if (stop) {
+        method.step(t, computeNewInput(state), computeReward(state), true);
+      }
+      else {
+        state = executeAction(state, method.step(t, computeNewInput(state), computeReward(state), false));
+      }
     }
     return outcome;
   }

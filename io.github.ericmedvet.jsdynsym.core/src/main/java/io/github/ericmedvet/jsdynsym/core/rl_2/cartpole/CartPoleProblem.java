@@ -24,13 +24,16 @@ import io.github.ericmedvet.jsdynsym.core.rl_2.RLEpisodicTask;
 import java.util.Random;
 
 public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPoleProblem.CartPoleState> {
-  public record CartPoleState(double x, double cartVelocity, double poleAngle, double poleAngVelocity) {}
+  public record CartPoleState(double x, double cartVelocity, double poleAngle, double poleAngVelocity) {
+  }
 
   private final double poleLength;
   private final double poleMass;
   private final double cartMass;
-  private final DoubleRange fRange;
+  private final double maxLinearV;
   private final double maxX;
+  private final double maxAngularV;
+  private final double maxF;
   private final double g;
   private final double timetick;
   private final Random rng;
@@ -38,33 +41,39 @@ public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPol
   private static final double DEFAULT_POLE_LENGTH = 1;
   private static final double DEFAULT_POLE_MASS = .1;
   private static final double DEFAULT_CART_MASS = 1;
-  private static final double DEFAULT_MAX_F = 1;
+  private static final double DEFAULT_MAX_F = 10;
   private static final double DEFAULT_MAX_X = 9;
+  private static final double DEFAULT_MAX_LINEAR_V = 10;
+  private static final double DEFAULT_MAX_ANGULAR_V = 10;
   private static final double G = 9.81;
-  private static final double DEFAULT_TIMETICK = .1;
+  private static final double DEFAULT_TIMETICK = 1 / 60d;
 
   public CartPoleProblem(
-      double maxF,
-      double maxX,
-      double poleLength,
-      double poleMass,
-      double cartMass,
-      double g,
-      double timetick,
-      int seed
+          double maxF,
+          double maxX,
+          double maxLinearV,
+          double maxAngularV,
+          double poleLength,
+          double poleMass,
+          double cartMass,
+          double g,
+          double timetick,
+          int seed
   ) {
     this.poleLength = poleLength;
     this.poleMass = poleMass;
     this.cartMass = cartMass;
-    this.fRange = new DoubleRange(-maxF, maxF);
+    this.maxF = maxF;
     this.maxX = maxX;
+    this.maxLinearV = maxLinearV;
+    this.maxAngularV = maxAngularV;
     this.g = g;
     this.timetick = timetick;
     this.rng = seed >= 0 ? new Random(seed) : new Random();
   }
 
   public CartPoleProblem(double maxF, int seed) {
-    this(maxF, DEFAULT_MAX_X, DEFAULT_POLE_LENGTH, DEFAULT_POLE_MASS, DEFAULT_CART_MASS, G, DEFAULT_TIMETICK, seed);
+    this(maxF, DEFAULT_MAX_X, DEFAULT_MAX_LINEAR_V, DEFAULT_MAX_ANGULAR_V, DEFAULT_POLE_LENGTH, DEFAULT_POLE_MASS, DEFAULT_CART_MASS, G, DEFAULT_TIMETICK, seed);
   }
 
   public CartPoleProblem(int seed) {
@@ -76,9 +85,7 @@ public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPol
   }
 
   private double linearAcc(CartPoleState state, double action) {
-    final double x = state.x;
     final double theta = state.poleAngle;
-    final double dx = state.cartVelocity;
     final double dTheta = state.poleAngVelocity;
     final double sinTheta = Math.sin(theta);
     final double cosTheta = Math.cos(theta);
@@ -86,9 +93,7 @@ public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPol
   }
 
   private double angularAcc(CartPoleState state, double action) {
-    final double x = state.x;
     final double theta = state.poleAngle;
-    final double dx = state.cartVelocity;
     final double dTheta = state.poleAngVelocity;
     final double sinTheta = Math.sin(theta);
     final double cosTheta = Math.cos(theta);
@@ -101,12 +106,17 @@ public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPol
 
   @Override
   public double[] computeNewInput(CartPoleState state) {
-    return new double[]{state.x, state.cartVelocity, state.poleAngle, state.poleAngVelocity};
+    return new double[]{
+            state.x / maxX,
+            DoubleRange.SYMMETRIC_UNIT.clip(state.cartVelocity / maxLinearV),
+            state.poleAngle * 2 / Math.PI,
+            DoubleRange.SYMMETRIC_UNIT.clip(state.poleAngVelocity / maxAngularV),
+    };
   }
 
   @Override
   public double computeReward(CartPoleState state) {
-    return 1;
+    return 1 - Math.abs(2 * state.poleAngle / Math.PI);
   }
 
   @Override
@@ -115,50 +125,40 @@ public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPol
     double dx = currentState.cartVelocity;
     double theta = currentState.poleAngle;
     double dTheta = currentState.poleAngVelocity;
+    double F = DoubleRange.SYMMETRIC_UNIT.clip(action) * maxF;
     double[][] rkFactors = new double[4][4];
-    System.arraycopy(rungeKuttaF(currentState, action), 0, rkFactors[0], 0, 4);
+    System.arraycopy(rungeKuttaF(currentState, F), 0, rkFactors[0], 0, 4);
     for (int i = 1; i < 3; ++i) {
       System.arraycopy(
-          rungeKuttaF(
-              new CartPoleState(
-                  x + rkFactors[i - 1][0] * timetick / 2,
-                  dx + rkFactors[i - 1][1] * timetick / 2,
-                  theta + rkFactors[i - 1][2] * timetick / 2,
-                  dTheta + rkFactors[i - 1][3] * timetick / 2
-              ),
-              action
-          ),
-          0,
-          rkFactors[i],
-          0,
-          4
-      );
+              rungeKuttaF(
+                      new CartPoleState(
+                              x + rkFactors[i - 1][0] * timetick / 2,
+                              dx + rkFactors[i - 1][1] * timetick / 2,
+                              theta + rkFactors[i - 1][2] * timetick / 2,
+                              dTheta + rkFactors[i - 1][3] * timetick / 2
+                      ),
+                      F),
+              0, rkFactors[i], 0, 4);
     }
     System.arraycopy(
-        rungeKuttaF(
-            new CartPoleState(
-                x + rkFactors[2][0] * timetick,
-                dx + rkFactors[2][1] * timetick,
-                theta + rkFactors[2][2] * timetick,
-                dTheta + rkFactors[2][3] * timetick
-            ),
-            action
-        ),
-        0,
-        rkFactors[3],
-        0,
-        4
-    );
+            rungeKuttaF(
+                    new CartPoleState(
+                            x + rkFactors[2][0] * timetick,
+                            dx + rkFactors[2][1] * timetick,
+                            theta + rkFactors[2][2] * timetick,
+                            dTheta + rkFactors[2][3] * timetick
+                    ),
+                    F), 0, rkFactors[3], 0, 4);
     double[] newState = new double[]{x, dx, theta, dTheta};
     for (int i = 0; i < 4; ++i) {
       newState[i] += (rkFactors[0][i] + 2 * rkFactors[1][i] + 2 * rkFactors[2][i] + rkFactors[3][i]) * timetick / 6;
     }
-    return new CartPoleState(newState[0], fRange.clip(newState[1]), newState[2], newState[3]);
+    return new CartPoleState(newState[0], newState[1], newState[2], newState[3]);
   }
 
   @Override
   public CartPoleState initialize() {
-    return new CartPoleState(0, rng.nextGaussian() * .3, rng.nextGaussian() * Math.PI / 18, 0);
+    return new CartPoleState(0, rng.nextDouble(-.3, .3), rng.nextDouble(-Math.PI / 18, Math.PI / 18), 0);
   }
 
   @Override

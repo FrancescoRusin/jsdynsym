@@ -26,7 +26,7 @@ import java.util.stream.IntStream;
 public abstract class GaussianNoisePolicy implements RLPolicy<double[], double[]> {
   protected final double noiseSigma;
   private final Random random;
-  public static final double DEFAULT_NOISE_SIGMA = .1;
+  public static final double DEFAULT_NOISE_SIGMA = .5;
 
   GaussianNoisePolicy(double noiseSigma, int seed) {
     this.noiseSigma = noiseSigma;

@@ -38,6 +38,11 @@ public class NeuralCritic implements RLCritic<double[]> {
   }
 
   @Override
+  public int nOfParams() {
+    return mlp.getParams().length;
+  }
+
+  @Override
   public double[] gradient(double[] state) {
     return mlp.jacobianByWeights(state)[0];
   }

@@ -23,7 +23,6 @@ import io.github.ericmedvet.jnb.datastructure.DoubleRange;
 
 import java.util.Arrays;
 import java.util.Random;
-import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 public class ActorCriticMethod implements RLMethod<double[], double[]> {
@@ -40,7 +39,6 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
   private final double actorLearningRate;
   private final double criticLearningRate;
   private final double discountFactor;
-  private double currentWeightDecay;
 
   private static final double DEFAULT_ACTOR_LR = 1e-4;
   private static final double DEFAULT_CRITIC_LR = 1e-3;
@@ -58,20 +56,19 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
   ) {
     this.rng = randomSeed >= 0 ? new Random(randomSeed) : new Random();
     this.lastObservation = new double[nOfInputs];
-    Arrays.fill(this.lastObservation, 0);
+    lastObservation[0] = Double.POSITIVE_INFINITY;
     this.lastAction = new double[nOfOutputs];
-    Arrays.fill(this.lastAction, 0);
     this.actorLearningRate = actorLearningRate;
     this.criticLearningRate = criticLearningRate;
     this.discountFactor = discountFactor;
     this.actor = switch (actorModel) {
-      case LINEAR -> new LinearPolicy(nOfInputs, nOfOutputs);
-      case NEURAL -> null;
+      case LINEAR -> new LinearTanhPolicy(nOfInputs, nOfOutputs);
+      case NEURAL -> new NeuralPolicy(nOfInputs, new int[]{(nOfInputs + nOfOutputs) / 2}, nOfOutputs, randomSeed);
       case TILES -> null;
     };
     this.critic = switch (criticModel) {
       case LINEAR -> new LinearCritic(nOfInputs);
-      case NEURAL -> null;
+      case NEURAL -> new NeuralCritic(nOfInputs, new int[]{nOfInputs});
       case TILES -> null;
     };
     reset();
@@ -115,28 +112,32 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
   }
 
   @Override
-  public double[] step(double t, double[] input, double reward) {
-    final double delta = reward + discountFactor * critic.apply(input) - critic.apply(lastObservation);
-    final double[] criticGradient = critic.gradient(lastObservation);
-    final double[] criticCurrParams = critic.getParams();
-    critic.setParams(
-        IntStream.range(0, criticGradient.length)
-            .mapToDouble(i -> criticCurrParams[i] + criticLearningRate * delta * criticGradient[i])
-            .toArray()
-    );
-    final double[] actorLogGradient = actor.logGradient(lastObservation, lastAction);
-    final double[] actorCurrParams = actor.getParams();
-    actor.setParams(
-        IntStream.range(0, actorLogGradient.length)
-            .mapToDouble(
-                i -> actorCurrParams[i] + actorLearningRate * delta * currentWeightDecay * actorLogGradient[i]
-            )
-            .toArray()
-    );
+  public double[] step(double t, double[] input, double reward, boolean terminal) {
+    if (!Double.isNaN(lastObservation[0])) {
+      final double delta = reward + (terminal ? 0 : discountFactor * critic.apply(input)) - critic.apply(lastObservation);
+      final double[] criticGradient = critic.gradient(lastObservation);
+      final double[] criticCurrParams = critic.getParams();
+      critic.setParams(
+              IntStream.range(0, criticGradient.length)
+                      .mapToDouble(i -> criticCurrParams[i] + criticLearningRate * delta * criticGradient[i])
+                      .toArray()
+      );
+      final double[] actorLogGradient = actor.logGradient(lastObservation, lastAction);
+      final double[] actorCurrParams = actor.getParams();
+      actor.setParams(
+              IntStream.range(0, actorLogGradient.length)
+                      .mapToDouble(
+                              i -> actorCurrParams[i] + actorLearningRate * delta * actorLogGradient[i]
+                      )
+                      .toArray()
+      );
+    }
+    if (terminal) {
+      return new double[]{0};
+    }
     System.arraycopy(input, 0, lastObservation, 0, lastObservation.length);
     final double[] newAction = actor.pickAction(input);
     System.arraycopy(newAction, 0, lastAction, 0, lastAction.length);
-    currentWeightDecay *= discountFactor;
     return newAction;
   }
 
@@ -149,13 +150,13 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
 
   @Override
   public void reset() {
-    this.actor.randomize(rng, DoubleRange.SYMMETRIC_UNIT);
-    this.critic.randomize(rng, DoubleRange.SYMMETRIC_UNIT);
-    this.currentWeightDecay = 1;
+    actor.randomize(rng, DoubleRange.SYMMETRIC_UNIT);
+    critic.randomize(rng, DoubleRange.SYMMETRIC_UNIT);
+    episodeReset();
   }
 
   @Override
   public void episodeReset() {
-    this.currentWeightDecay = 1;
+    lastObservation[0] = Double.NaN;
   }
 }

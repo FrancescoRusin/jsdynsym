@@ -21,37 +21,40 @@ package io.github.ericmedvet.jsdynsym.core.rl_2;
 
 import io.github.ericmedvet.jsdynsym.core.numerical.LinearAlgebraUtils;
 import java.util.Arrays;
-import org.jspecify.annotations.NullMarked;
 
-public class LinearPolicy extends GaussianNoisePolicy {
+public class LinearTanhPolicy extends GaussianNoisePolicy {
   private final double[][] weights;
+  private final double[] biases;
 
-  public LinearPolicy(int nOfInputs, int nOfOutputs, double noiseSigma, int seed) {
+  public LinearTanhPolicy(int nOfInputs, int nOfOutputs, double noiseSigma, int seed) {
     super(noiseSigma, seed);
     this.weights = new double[nOfOutputs][nOfInputs];
+    this.biases = new double[nOfOutputs];
   }
 
-  public LinearPolicy(int nOfInputs, int nOfOutputs, int seed) {
+  public LinearTanhPolicy(int nOfInputs, int nOfOutputs, int seed) {
     this(nOfInputs, nOfOutputs, DEFAULT_NOISE_SIGMA, seed);
   }
 
-  public LinearPolicy(int nOfInputs, int nOfOutputs) {
+  public LinearTanhPolicy(int nOfInputs, int nOfOutputs) {
     this(nOfInputs, nOfOutputs, -1);
   }
 
   @Override
   public double[] meanAction(double[] state) {
-    return LinearAlgebraUtils.product(weights, state);
+    return Arrays.stream(LinearAlgebraUtils.sum(LinearAlgebraUtils.product(weights, state), biases)).map(Math::tanh).toArray();
   }
 
   @Override
   protected double[][] deterministicJacobian(double[] state) {
-    double[][] jacobian = new double[weights.length][nOfParams()];
-    for (int i = 0; i < weights.length; ++i) {
+    double[] meanActionDerivative = Arrays.stream(meanAction(state)).map(d -> 1 - d * d).toArray();
+    double[][] jacobian = new double[nOfOutputs()][nOfParams()];
+    for (int i = 0; i < nOfOutputs(); ++i) {
       Arrays.fill(jacobian[i], 0);
-      for (int j = 0; j < weights.length; ++j) {
-        jacobian[i * weights.length + j][j] = weights[i][j];
+      for (int j = 0; j < nOfInputs(); ++j) {
+        jacobian[i][j] = state[j] * meanActionDerivative[i];
       }
+      jacobian[i][nOfInputs()] = meanActionDerivative[i];
     }
     return jacobian;
   }
@@ -68,27 +71,35 @@ public class LinearPolicy extends GaussianNoisePolicy {
 
   @Override
   public int nOfParams() {
-    return weights.length * weights[0].length;
+    return nOfOutputs() * (nOfInputs() + 1);
   }
 
   @Override
-  @NullMarked
   public double[] getParams() {
-    return Arrays.stream(weights).flatMap(a -> Arrays.stream(a).boxed()).mapToDouble(d -> d).toArray();
+    final double[] flatParams = new double[nOfParams()];
+    int index = -1;
+    for (int i = 0; i < nOfOutputs(); ++i) {
+      for (int j = 0; j < nOfInputs(); ++j) {
+        flatParams[++index] = weights[i][j];
+      }
+      flatParams[++index] = biases[i];
+    }
+    return flatParams;
   }
 
   @Override
   public void setParams(double[] param) {
-    if (param.length != weights.length * weights[0].length) {
+    if (param.length != nOfParams()) {
       throw new IllegalArgumentException(
-          "Wrong number of parameters; found %d, needed %d".formatted(param.length, weights.length * weights[0].length)
+          "Wrong number of parameters; found %d, needed %d".formatted(param.length, nOfParams())
       );
     }
     int index = -1;
-    for (int i = 0; i < weights.length; ++i) {
-      for (int j = 0; j < weights[0].length; ++j) {
+    for (int i = 0; i < nOfOutputs(); ++i) {
+      for (int j = 0; j < nOfInputs(); ++j) {
         weights[i][j] = param[++index];
       }
+      biases[i] = param[++index];
     }
   }
 }
