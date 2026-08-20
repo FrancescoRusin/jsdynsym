@@ -31,7 +31,7 @@ public class Main {
     CartPoleVisualizer visualizer = new CartPoleVisualizer();
     CartPoleProblem problem = new CartPoleProblem();
     RLMethod<double[], Double> method = RLMethod.singleDoubleMethod(new ActorCriticMethod(4, 1, ActorCriticMethod.Model.LINEAR, ActorCriticMethod.Model.LINEAR));
-    for (int i = 0; i < 10000; ++i) {
+    for (int i = 0; i < 1000000; ++i) {
       problem.runEpisode(method, 1000, _ -> {});
       method.episodeReset();
       /*if (i % 100 == 0) {

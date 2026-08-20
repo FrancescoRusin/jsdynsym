@@ -38,6 +38,7 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
   private final double[] lastAction;
   private final double actorLearningRate;
   private final double criticLearningRate;
+  private double actorDampener;
   private final double discountFactor;
 
   private static final double DEFAULT_ACTOR_LR = 1e-4;
@@ -127,10 +128,11 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
       actor.setParams(
               IntStream.range(0, actorLogGradient.length)
                       .mapToDouble(
-                              i -> actorCurrParams[i] + actorLearningRate * delta * actorLogGradient[i]
+                              i -> actorCurrParams[i] + actorLearningRate * actorDampener * delta * actorLogGradient[i]
                       )
                       .toArray()
       );
+      actorDampener *= discountFactor;
     }
     if (terminal) {
       return new double[]{0};
@@ -158,5 +160,6 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
   @Override
   public void episodeReset() {
     lastObservation[0] = Double.NaN;
+    actorDampener = 1;
   }
 }
