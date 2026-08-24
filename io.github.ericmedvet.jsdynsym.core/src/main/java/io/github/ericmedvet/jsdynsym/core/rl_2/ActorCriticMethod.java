@@ -29,7 +29,7 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
 
   public record MethodState(double[] actorWeights, double[] criticWeights) {}
 
-  public enum Model { LINEAR, NEURAL, TILES }
+  public enum Model { LINEAR, LINEAR_BIASED, NEURAL, TILES }
 
   private final RLPolicy<double[], double[]> actor;
   private final RLCritic<double[]> critic;
@@ -42,7 +42,7 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
   private final double discountFactor;
 
   private static final double DEFAULT_ACTOR_LR = 1e-4;
-  private static final double DEFAULT_CRITIC_LR = 1e-3;
+  private static final double DEFAULT_CRITIC_LR = 1e-2;
   private static final double DEFAULT_DISCOUNT_FACTOR = .99;
 
   public ActorCriticMethod(
@@ -64,11 +64,13 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
     this.discountFactor = discountFactor;
     this.actor = switch (actorModel) {
       case LINEAR -> new LinearTanhPolicy(nOfInputs, nOfOutputs);
+      case LINEAR_BIASED -> new LinearBiasedTanhPolicy(nOfInputs, nOfOutputs);
       case NEURAL -> new NeuralPolicy(nOfInputs, new int[]{(nOfInputs + nOfOutputs) / 2}, nOfOutputs, randomSeed);
       case TILES -> null;
     };
     this.critic = switch (criticModel) {
       case LINEAR -> new LinearCritic(nOfInputs);
+      case LINEAR_BIASED -> new LinearBiasedCritic(nOfInputs);
       case NEURAL -> new NeuralCritic(nOfInputs, new int[]{nOfInputs});
       case TILES -> null;
     };
@@ -90,25 +92,25 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
         DEFAULT_ACTOR_LR,
         DEFAULT_CRITIC_LR,
         DEFAULT_DISCOUNT_FACTOR,
-            randomSeed
+        randomSeed
     );
   }
 
   public ActorCriticMethod(
-          int nOfInputs,
-          int nOfOutputs,
-          Model actorModel,
-          Model criticModel
+      int nOfInputs,
+      int nOfOutputs,
+      Model actorModel,
+      Model criticModel
   ) {
     this(
-            nOfInputs,
-            nOfOutputs,
-            actorModel,
-            criticModel,
-            DEFAULT_ACTOR_LR,
-            DEFAULT_CRITIC_LR,
-            DEFAULT_DISCOUNT_FACTOR,
-            -1
+        nOfInputs,
+        nOfOutputs,
+        actorModel,
+        criticModel,
+        DEFAULT_ACTOR_LR,
+        DEFAULT_CRITIC_LR,
+        DEFAULT_DISCOUNT_FACTOR,
+        -1
     );
   }
 
@@ -116,21 +118,26 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
   public double[] step(double t, double[] input, double reward, boolean terminal) {
     if (!Double.isNaN(lastObservation[0])) {
       final double delta = reward + (terminal ? 0 : discountFactor * critic.apply(input)) - critic.apply(lastObservation);
+      if (Double.isNaN(delta) || Math.abs(delta) > 1000000) {
+        System.out.printf("\n\nActor: %s\nCritic: %s\n", Arrays.stream(actor.getParams()).boxed().toList(), Arrays.stream(critic.getParams()).boxed().toList());
+        System.out.printf("Got %f (reward %f, terminal %s) with:\ninput = %s\nlast = %s\n\n", delta, reward, terminal, Arrays.stream(input).boxed().toList(), Arrays.stream(lastObservation).boxed().toList());
+        throw new RuntimeException("[Southsea Deckhand summon clip]");
+      }
       final double[] criticGradient = critic.gradient(lastObservation);
       final double[] criticCurrParams = critic.getParams();
       critic.setParams(
-              IntStream.range(0, criticGradient.length)
-                      .mapToDouble(i -> criticCurrParams[i] + criticLearningRate * delta * criticGradient[i])
-                      .toArray()
+          IntStream.range(0, criticGradient.length)
+              .mapToDouble(i -> criticCurrParams[i] + criticLearningRate * delta * criticGradient[i])
+              .toArray()
       );
       final double[] actorLogGradient = actor.logGradient(lastObservation, lastAction);
       final double[] actorCurrParams = actor.getParams();
       actor.setParams(
-              IntStream.range(0, actorLogGradient.length)
-                      .mapToDouble(
-                              i -> actorCurrParams[i] + actorLearningRate * actorDampener * delta * actorLogGradient[i]
-                      )
-                      .toArray()
+          IntStream.range(0, actorLogGradient.length)
+              .mapToDouble(
+                  i -> actorCurrParams[i] + actorLearningRate * actorDampener * delta * actorLogGradient[i]
+              )
+              .toArray()
       );
       actorDampener *= discountFactor;
     }
@@ -148,7 +155,9 @@ public class ActorCriticMethod implements RLMethod<double[], double[]> {
     return actor.getParams();
   }
 
-  public double[] getCurrentCriticParams() {return critic.getParams();}
+  public double[] getCurrentCriticParams() {
+    return critic.getParams();
+  }
 
   @Override
   public void reset() {

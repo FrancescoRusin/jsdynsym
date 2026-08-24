@@ -35,6 +35,7 @@ public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPol
   private final double maxAngularV;
   private final double maxF;
   private final double g;
+  private final double discreteThreshhold;
   private final double timetick;
   private final Random rng;
 
@@ -49,16 +50,17 @@ public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPol
   private static final double DEFAULT_TIMETICK = 1 / 60d;
 
   public CartPoleProblem(
-          double maxF,
-          double maxX,
-          double maxLinearV,
-          double maxAngularV,
-          double poleLength,
-          double poleMass,
-          double cartMass,
-          double g,
-          double timetick,
-          int seed
+      double maxF,
+      double maxX,
+      double discreteThreshhold,
+      double maxLinearV,
+      double maxAngularV,
+      double poleLength,
+      double poleMass,
+      double cartMass,
+      double g,
+      double timetick,
+      int seed
   ) {
     this.poleLength = poleLength;
     this.poleMass = poleMass;
@@ -68,16 +70,33 @@ public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPol
     this.maxLinearV = maxLinearV;
     this.maxAngularV = maxAngularV;
     this.g = g;
+    this.discreteThreshhold = discreteThreshhold;
     this.timetick = timetick;
     this.rng = seed >= 0 ? new Random(seed) : new Random();
   }
 
-  public CartPoleProblem(double maxF, int seed) {
-    this(maxF, DEFAULT_MAX_X, DEFAULT_MAX_LINEAR_V, DEFAULT_MAX_ANGULAR_V, DEFAULT_POLE_LENGTH, DEFAULT_POLE_MASS, DEFAULT_CART_MASS, G, DEFAULT_TIMETICK, seed);
+  public CartPoleProblem(double maxF, double discreteThreshhold, int seed) {
+    this(
+        maxF,
+        DEFAULT_MAX_X,
+        discreteThreshhold,
+        DEFAULT_MAX_LINEAR_V,
+        DEFAULT_MAX_ANGULAR_V,
+        DEFAULT_POLE_LENGTH,
+        DEFAULT_POLE_MASS,
+        DEFAULT_CART_MASS,
+        G,
+        DEFAULT_TIMETICK,
+        seed
+    );
   }
 
-  public CartPoleProblem(int seed) {
-    this(DEFAULT_MAX_F, seed);
+  public CartPoleProblem(double discreteThreshhold, int seed) {
+    this(DEFAULT_MAX_F, discreteThreshhold, seed);
+  }
+
+  public CartPoleProblem(double discreteThreshhold) {
+    this(discreteThreshhold, -1);
   }
 
   public CartPoleProblem() {
@@ -106,11 +125,9 @@ public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPol
 
   @Override
   public double[] computeNewInput(CartPoleState state) {
-    return new double[]{
-            state.x / maxX,
-            DoubleRange.SYMMETRIC_UNIT.clip(state.cartVelocity / maxLinearV),
-            state.poleAngle * 2 / Math.PI,
-            DoubleRange.SYMMETRIC_UNIT.clip(state.poleAngVelocity / maxAngularV),
+    return new double[]{state.x / maxX, DoubleRange.SYMMETRIC_UNIT.clip(
+        state.cartVelocity / maxLinearV
+    ), state.poleAngle * 2 / Math.PI, DoubleRange.SYMMETRIC_UNIT.clip(state.poleAngVelocity / maxAngularV),
     };
   }
 
@@ -121,34 +138,54 @@ public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPol
 
   @Override
   public CartPoleState executeAction(CartPoleState currentState, Double action) {
-    double x = currentState.x;
-    double dx = currentState.cartVelocity;
-    double theta = currentState.poleAngle;
-    double dTheta = currentState.poleAngVelocity;
-    double F = DoubleRange.SYMMETRIC_UNIT.clip(action) * maxF;
+    final double x = currentState.x;
+    final double dx = currentState.cartVelocity;
+    final double theta = currentState.poleAngle;
+    final double dTheta = currentState.poleAngVelocity;
+    final double F;
+    if (discreteThreshhold >= 0) {
+      if (Math.abs(action) > discreteThreshhold) {
+        F = Math.signum(action) * maxF;
+      } else {
+        F = 0;
+      }
+    } else {
+      F = DoubleRange.SYMMETRIC_UNIT.clip(action) * maxF;
+    }
     double[][] rkFactors = new double[4][4];
     System.arraycopy(rungeKuttaF(currentState, F), 0, rkFactors[0], 0, 4);
     for (int i = 1; i < 3; ++i) {
       System.arraycopy(
-              rungeKuttaF(
-                      new CartPoleState(
-                              x + rkFactors[i - 1][0] * timetick / 2,
-                              dx + rkFactors[i - 1][1] * timetick / 2,
-                              theta + rkFactors[i - 1][2] * timetick / 2,
-                              dTheta + rkFactors[i - 1][3] * timetick / 2
-                      ),
-                      F),
-              0, rkFactors[i], 0, 4);
+          rungeKuttaF(
+              new CartPoleState(
+                  x + rkFactors[i - 1][0] * timetick / 2,
+                  dx + rkFactors[i - 1][1] * timetick / 2,
+                  theta + rkFactors[i - 1][2] * timetick / 2,
+                  dTheta + rkFactors[i - 1][3] * timetick / 2
+              ),
+              F
+          ),
+          0,
+          rkFactors[i],
+          0,
+          4
+      );
     }
     System.arraycopy(
-            rungeKuttaF(
-                    new CartPoleState(
-                            x + rkFactors[2][0] * timetick,
-                            dx + rkFactors[2][1] * timetick,
-                            theta + rkFactors[2][2] * timetick,
-                            dTheta + rkFactors[2][3] * timetick
-                    ),
-                    F), 0, rkFactors[3], 0, 4);
+        rungeKuttaF(
+            new CartPoleState(
+                x + rkFactors[2][0] * timetick,
+                dx + rkFactors[2][1] * timetick,
+                theta + rkFactors[2][2] * timetick,
+                dTheta + rkFactors[2][3] * timetick
+            ),
+            F
+        ),
+        0,
+        rkFactors[3],
+        0,
+        4
+    );
     double[] newState = new double[]{x, dx, theta, dTheta};
     for (int i = 0; i < 4; ++i) {
       newState[i] += (rkFactors[0][i] + 2 * rkFactors[1][i] + 2 * rkFactors[2][i] + rkFactors[3][i]) * timetick / 6;

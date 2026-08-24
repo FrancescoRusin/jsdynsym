@@ -19,9 +19,6 @@
  */
 package io.github.ericmedvet.jsdynsym.core.rl_2.cartpole;
 
-import org.lwjgl.glfw.GLFWErrorCallback;
-import org.lwjgl.opengl.GL;
-
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
@@ -29,6 +26,8 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import org.lwjgl.glfw.GLFWErrorCallback;
+import org.lwjgl.opengl.GL;
 
 public class CartPoleVisualizer implements Consumer<CartPoleProblem.CartPoleState> {
   private final List<CartPoleProblem.CartPoleState> cache;
@@ -46,11 +45,11 @@ public class CartPoleVisualizer implements Consumer<CartPoleProblem.CartPoleStat
     glBegin(GL_TRIANGLES);
     glVertex3d(x1, y1, 0f);
     glVertex3d(x2, y2, 0f);
-    glVertex3d(x3,  y3, 0f);
+    glVertex3d(x3, y3, 0f);
     glEnd();
     glBegin(GL_TRIANGLES);
     glVertex3d(x1, y1, 0f);
-    glVertex3d(x3,  y3, 0f);
+    glVertex3d(x3, y3, 0f);
     glVertex3d(x4, y4, 0f);
     glEnd();
   }
@@ -93,8 +92,16 @@ public class CartPoleVisualizer implements Consumer<CartPoleProblem.CartPoleStat
       drawRect(stateX - .2, -.35, stateX - .2, -.65, stateX + .2, -.65, stateX + .2, -.35);
 
       glColor3f(1f, 0f, 0f);
-      drawRect(stateX - .1 * cos, -.5 + .1 * sin, stateX - .1 * cos + .8 * sin, -.5 + .1 * sin + .8 * cos,
-              stateX + .1 * cos + .8 * sin, -.5 - .1 * sin + .8 * cos, stateX + .1 * cos, -.5 - .1 * sin);
+      drawRect(
+          stateX - .1 * cos,
+          -.5 + .1 * sin,
+          stateX - .1 * cos + .8 * sin,
+          -.5 + .1 * sin + .8 * cos,
+          stateX + .1 * cos + .8 * sin,
+          -.5 - .1 * sin + .8 * cos,
+          stateX + .1 * cos,
+          -.5 - .1 * sin
+      );
 
       glfwSwapBuffers(window);
       glfwPollEvents();
@@ -107,23 +114,31 @@ public class CartPoleVisualizer implements Consumer<CartPoleProblem.CartPoleStat
       double cos = Math.cos(state.poleAngle());
       double sin = Math.sin(state.poleAngle());
       double stateX = state.x() * .1;
-        glClear(GL_COLOR_BUFFER_BIT);
-        glColor3f(0f, 0f, 0f);
-        glLineWidth(10f);
-        glBegin(GL_LINES);
-        glVertex3d(-1d, -.5d, 0d);
-        glVertex3d(1d, -.5d, 0d);
-        glEnd();
+      glClear(GL_COLOR_BUFFER_BIT);
+      glColor3f(0f, 0f, 0f);
+      glLineWidth(10f);
+      glBegin(GL_LINES);
+      glVertex3d(-1d, -.5d, 0d);
+      glVertex3d(1d, -.5d, 0d);
+      glEnd();
 
-        glColor3f(0f, 0f, 1f);
-        drawRect(stateX - .2, -.35, stateX - .2, -.65, stateX + .2, -.65, stateX + .2, -.35);
+      glColor3f(0f, 0f, 1f);
+      drawRect(stateX - .2, -.35, stateX - .2, -.65, stateX + .2, -.65, stateX + .2, -.35);
 
-        glColor3f(1f, 0f, 0f);
-        drawRect(stateX - .1 * cos, -.5 + .1 * sin, stateX - .1 * cos + .8 * sin, -.5 + .1 * sin + .8 * cos,
-                stateX + .1 * cos + .8 * sin, -.5 - .1 * sin + .8 * cos, stateX + .1 * cos, -.5 - .1 * sin);
+      glColor3f(1f, 0f, 0f);
+      drawRect(
+          stateX - .1 * cos,
+          -.5 + .1 * sin,
+          stateX - .1 * cos + .8 * sin,
+          -.5 + .1 * sin + .8 * cos,
+          stateX + .1 * cos + .8 * sin,
+          -.5 - .1 * sin + .8 * cos,
+          stateX + .1 * cos,
+          -.5 - .1 * sin
+      );
 
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+      glfwSwapBuffers(window);
+      glfwPollEvents();
     }
 
     glfwDestroyWindow(window);

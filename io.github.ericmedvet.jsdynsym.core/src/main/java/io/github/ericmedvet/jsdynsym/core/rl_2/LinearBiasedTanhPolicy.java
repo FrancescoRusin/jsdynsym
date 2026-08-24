@@ -22,36 +22,41 @@ package io.github.ericmedvet.jsdynsym.core.rl_2;
 import io.github.ericmedvet.jsdynsym.core.numerical.LinearAlgebraUtils;
 import java.util.Arrays;
 
-public class LinearTanhPolicy extends GaussianNoisePolicy {
+public class LinearBiasedTanhPolicy extends GaussianNoisePolicy {
   private final double[][] weights;
+  private final double[] biases;
 
-  public LinearTanhPolicy(int nOfInputs, int nOfOutputs, double noiseSigma, int seed) {
+  public LinearBiasedTanhPolicy(int nOfInputs, int nOfOutputs, double noiseSigma, int seed) {
     super(noiseSigma, seed);
     this.weights = new double[nOfOutputs][nOfInputs];
+    this.biases = new double[nOfOutputs];
   }
 
-  public LinearTanhPolicy(int nOfInputs, int nOfOutputs, int seed) {
+  public LinearBiasedTanhPolicy(int nOfInputs, int nOfOutputs, int seed) {
     this(nOfInputs, nOfOutputs, DEFAULT_NOISE_SIGMA, seed);
   }
 
-  public LinearTanhPolicy(int nOfInputs, int nOfOutputs) {
+  public LinearBiasedTanhPolicy(int nOfInputs, int nOfOutputs) {
     this(nOfInputs, nOfOutputs, -1);
   }
 
   @Override
   public double[] meanAction(double[] state) {
-    return Arrays.stream(LinearAlgebraUtils.product(weights, state)).map(Math::tanh).toArray();
+    return Arrays.stream(LinearAlgebraUtils.sum(LinearAlgebraUtils.product(weights, state), biases))
+        .map(Math::tanh)
+        .toArray();
   }
 
   @Override
   protected double[][] deterministicJacobian(double[] state) {
     double[] meanActionDerivative = Arrays.stream(meanAction(state)).map(d -> 1 - d * d).toArray();
-    double[][] jacobian = new double[nOfOutputs()][nOfInputs()];
+    double[][] jacobian = new double[nOfOutputs()][nOfParams()];
     for (int i = 0; i < nOfOutputs(); ++i) {
       Arrays.fill(jacobian[i], 0);
       for (int j = 0; j < nOfInputs(); ++j) {
         jacobian[i][j] = state[j] * meanActionDerivative[i];
       }
+      jacobian[i][nOfInputs()] = meanActionDerivative[i];
     }
     return jacobian;
   }
@@ -68,12 +73,20 @@ public class LinearTanhPolicy extends GaussianNoisePolicy {
 
   @Override
   public int nOfParams() {
-    return nOfOutputs() * nOfInputs();
+    return nOfOutputs() * (nOfInputs() + 1);
   }
 
   @Override
   public double[] getParams() {
-    return Arrays.stream(weights).flatMap(a -> Arrays.stream(a).boxed()).mapToDouble(d -> d).toArray();
+    final double[] flatParams = new double[nOfParams()];
+    int index = -1;
+    for (int i = 0; i < nOfOutputs(); ++i) {
+      for (int j = 0; j < nOfInputs(); ++j) {
+        flatParams[++index] = weights[i][j];
+      }
+      flatParams[++index] = biases[i];
+    }
+    return flatParams;
   }
 
   @Override
@@ -88,6 +101,7 @@ public class LinearTanhPolicy extends GaussianNoisePolicy {
       for (int j = 0; j < nOfInputs(); ++j) {
         weights[i][j] = param[++index];
       }
+      biases[i] = param[++index];
     }
   }
 }

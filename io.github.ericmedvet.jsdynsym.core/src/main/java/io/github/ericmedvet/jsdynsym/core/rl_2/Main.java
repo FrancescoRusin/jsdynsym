@@ -19,8 +19,12 @@
  */
 package io.github.ericmedvet.jsdynsym.core.rl_2;
 
+import io.github.ericmedvet.jsdynsym.core.numerical.LinearAlgebraUtils;
 import io.github.ericmedvet.jsdynsym.core.rl_2.cartpole.CartPoleProblem;
 import io.github.ericmedvet.jsdynsym.core.rl_2.cartpole.CartPoleVisualizer;
+import org.lwjgl.system.MathUtil;
+
+import java.util.Arrays;
 
 public class Main {
   static void main(String[] args) {
@@ -29,10 +33,13 @@ public class Main {
 
   private static void rlTest() {
     CartPoleVisualizer visualizer = new CartPoleVisualizer();
-    CartPoleProblem problem = new CartPoleProblem();
-    RLMethod<double[], Double> method = RLMethod.singleDoubleMethod(new ActorCriticMethod(4, 1, ActorCriticMethod.Model.LINEAR, ActorCriticMethod.Model.LINEAR));
-    for (int i = 0; i < 1000000; ++i) {
-      problem.runEpisode(method, 1000, _ -> {});
+    CartPoleProblem problem = new CartPoleProblem(0);
+    RLMethod<double[], Double> method = RLMethod.singleDoubleMethod(
+            new ActorCriticMethod(4, 1, ActorCriticMethod.Model.LINEAR, ActorCriticMethod.Model.NEURAL)
+    );
+    for (int i = 0; i < 100000; ++i) {
+      problem.runEpisode(method, 1800, _ -> {
+      });
       method.episodeReset();
       /*if (i % 100 == 0) {
         System.out.print("Current actor: ");

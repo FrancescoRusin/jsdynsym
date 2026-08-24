@@ -23,26 +23,28 @@ import io.github.ericmedvet.jsdynsym.core.numerical.LinearAlgebraUtils;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-public class LinearCritic implements RLCritic<double[]> {
+public class LinearBiasedCritic implements RLCritic<double[]> {
   private final double[] weights;
+  private double bias;
 
-  public LinearCritic(int nOfInputs) {
+  public LinearBiasedCritic(int nOfInputs) {
     this.weights = new double[nOfInputs];
+    this.bias = 0d;
   }
 
   @Override
   public int nOfParams() {
-    return weights.length;
+    return weights.length + 1;
   }
 
   @Override
   public double[] gradient(double[] state) {
-    return Arrays.copyOf(weights, nOfParams());
+    return Stream.concat(Arrays.stream(state).boxed(), Stream.of(1d)).mapToDouble(d -> d).toArray();
   }
 
   @Override
   public double[] getParams() {
-    return Arrays.copyOf(weights, nOfParams());
+    return Stream.concat(Arrays.stream(weights).boxed(), Stream.of(bias)).mapToDouble(d -> d).toArray();
   }
 
   @Override
@@ -52,11 +54,12 @@ public class LinearCritic implements RLCritic<double[]> {
           "Wrong number of parameters; found %d, needed %d".formatted(param.length, nOfParams())
       );
     }
-    System.arraycopy(param, 0, weights, 0, nOfParams());
+    System.arraycopy(param, 0, weights, 0, weights.length);
+    bias = param[param.length - 1];
   }
 
   @Override
   public Double apply(double[] state) {
-    return LinearAlgebraUtils.dotProduct(state, weights);
+    return LinearAlgebraUtils.dotProduct(state, weights) + bias;
   }
 }

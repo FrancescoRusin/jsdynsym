@@ -21,6 +21,7 @@ package io.github.ericmedvet.jsdynsym.core.rl_2;
 
 public interface RLMethod<S, A> {
   double[] getCurrentPolicyParams();
+
   double[] getCurrentCriticParams();
 
   void reset();
@@ -37,7 +38,9 @@ public interface RLMethod<S, A> {
       }
 
       @Override
-      public double[] getCurrentCriticParams() {return method.getCurrentCriticParams();}
+      public double[] getCurrentCriticParams() {
+        return method.getCurrentCriticParams();
+      }
 
       @Override
       public void reset() {

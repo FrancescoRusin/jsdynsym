@@ -24,12 +24,14 @@ module io.github.ericmedvet.jsdynsym.core {
   exports io.github.ericmedvet.jsdynsym.core.numerical;
   exports io.github.ericmedvet.jsdynsym.core.numerical.ann;
   exports io.github.ericmedvet.jsdynsym.core.rl;
+  exports io.github.ericmedvet.jsdynsym.core.rl_2;
+  exports io.github.ericmedvet.jsdynsym.core.rl_2.cartpole;
   exports io.github.ericmedvet.jsdynsym.core.numerical.named;
 
   requires io.github.ericmedvet.jnb.datastructure;
   requires java.desktop;
   requires io.github.ericmedvet.jnb.core;
   requires org.jspecify;
-    requires org.lwjgl.glfw;
-    requires org.lwjgl.opengl;
+  requires org.lwjgl.glfw;
+  requires org.lwjgl.opengl;
 }

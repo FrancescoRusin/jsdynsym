@@ -30,6 +30,7 @@ public interface RLEpisodicTask<I, O, S> extends RLTask<I, O, S> {
 
   default List<S> runEpisode(RLMethod<I, O> method, int nOfTicks, Consumer<S> listener) {
     S state = initialize();
+    method.episodeReset();
     List<S> outcome = new ArrayList<>();
     boolean stop = false;
     for (int t = 0; t < nOfTicks && !stop; ++t) {
@@ -38,8 +39,7 @@ public interface RLEpisodicTask<I, O, S> extends RLTask<I, O, S> {
       stop = stopCondition(state);
       if (stop) {
         method.step(t, computeNewInput(state), computeReward(state), true);
-      }
-      else {
+      } else {
         state = executeAction(state, method.step(t, computeNewInput(state), computeReward(state), false));
       }
     }
