@@ -125,9 +125,8 @@ public class CartPoleProblem implements RLEpisodicTask<double[], Double, CartPol
 
   @Override
   public double[] computeNewInput(CartPoleState state) {
-    return new double[]{state.x / maxX, DoubleRange.SYMMETRIC_UNIT.clip(
-        state.cartVelocity / maxLinearV
-    ), state.poleAngle * 2 / Math.PI, DoubleRange.SYMMETRIC_UNIT.clip(state.poleAngVelocity / maxAngularV),
+    return new double[]{state.x / maxX, DoubleRange.SYMMETRIC_UNIT.clip(state.cartVelocity / maxLinearV),
+            state.poleAngle * 2 / Math.PI, DoubleRange.SYMMETRIC_UNIT.clip(state.poleAngVelocity / maxAngularV),
     };
   }
 

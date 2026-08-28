@@ -57,7 +57,7 @@ public abstract class GaussianNoisePolicy implements RLPolicy<double[], double[]
       final int iCopy = i;
       double[] actionIContribution = IntStream.range(0, nOfParams)
           .mapToDouble(
-              j -> logGradient[j] + (action[iCopy] - meanAction[iCopy]) * deterministicJacobian[iCopy][j] / (noiseSigma * noiseSigma)
+              j -> (action[iCopy] - meanAction[iCopy]) * deterministicJacobian[iCopy][j] / (noiseSigma * noiseSigma)
           )
           .toArray();
       for (int j = 0; j < nOfParams; ++j) {
